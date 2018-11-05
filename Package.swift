@@ -7,9 +7,11 @@ let package = Package(
     products: [
         .library(name: "nio-kit", targets: ["nio-kit"]),
     ],
-    dependencies: [],
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-nio.git", from: "1.10.0")
+    ],
     targets: [
-        .target(name: "nio-kit", dependencies: []),
+        .target(name: "nio-kit", dependencies: ["NIO"]),
         .testTarget(name: "nio-kitTests", dependencies: ["nio-kit"]),
     ]
 )
