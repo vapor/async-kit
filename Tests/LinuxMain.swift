@@ -3,5 +3,5 @@ import XCTest
 import NIOKit
 
 var tests = [XCTestCaseEntry]()
-tests += NIOKit.allTests()
+tests += NIOKitTests.allTests()
 XCTMain(tests)
