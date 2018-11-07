@@ -1,7 +1,7 @@
 import XCTest
 
-import nio_kitTests
+import NIOKit
 
 var tests = [XCTestCaseEntry]()
-tests += nio_kitTests.allTests()
+tests += NIOKit.allTests()
 XCTMain(tests)
