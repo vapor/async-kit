@@ -83,16 +83,6 @@ final class FutureOperatorTests: XCTestCase {
         XCTAssertEqual(try future1.wait(), 3)
     }
     
-    func testBitwiseAnd() throws {
-        var future1 = eventLoop.newSucceededFuture(result: 200)
-        let future2 = eventLoop.newSucceededFuture(result: 500)
-        
-        XCTAssertEqual(try (future1 & future2).wait(), 192)
-        
-        future1 &= future2
-        XCTAssertEqual(try future1.wait(), 192)
-    }
-    
     func testDivision() throws {
         var future1 = eventLoop.newSucceededFuture(result: 40)
         let future2 = eventLoop.newSucceededFuture(result: 5)
@@ -132,6 +122,16 @@ final class FutureOperatorTests: XCTestCase {
         XCTAssertEqual(try future3.wait(), 255)
     }
     
+    func testAND() throws {
+        var future1 = eventLoop.newSucceededFuture(result: 200)
+        let future2 = eventLoop.newSucceededFuture(result: 500)
+        
+        XCTAssertEqual(try (future1 & future2).wait(), 192)
+        
+        future1 &= future2
+        XCTAssertEqual(try future1.wait(), 192)
+    }
+    
     func testXOR() throws {
         var future1 = eventLoop.newSucceededFuture(result: 8)
         let future2 = eventLoop.newSucceededFuture(result: 5)
@@ -156,4 +156,10 @@ final class FutureOperatorTests: XCTestCase {
         let future1: EventLoopFuture<UInt8> = eventLoop.newSucceededFuture(result: 0b00001111)
         XCTAssertEqual(try ~future1.wait(), 0b11110000)
     }
+    
+    static var allTests = [
+        "testAddition", "testSubtraction", "testMultiplication",
+        "testModulo", "testDivision", "testComparison", "testBitshifts",
+        "testAND", "testXOR", "testOR", "testNOT"
+    ]
 }
