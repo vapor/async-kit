@@ -65,7 +65,7 @@ public func -<T>(_ lhs: EventLoopFuture<[T]>, _ rhs: EventLoopFuture<[T]>) -> Ev
     return lhs.and(rhs).map { (arg) -> ([T]) in
         let (lhsVal, rhsVal) = arg
         return lhsVal.filter({ val -> Bool in
-            return rhsVal.contains(val)
+            return !rhsVal.contains(val)
         })
     }
 }
@@ -75,7 +75,7 @@ public func -=<T>(_ lhs: inout EventLoopFuture<[T]>, _ rhs: EventLoopFuture<[T]>
     lhs = lhs.and(rhs).map { (arg) -> ([T]) in
         let (lhsVal, rhsVal) = arg
         return lhsVal.filter({ val -> Bool in
-            return rhsVal.contains(val)
+            return !rhsVal.contains(val)
         })
     }
 }
@@ -194,14 +194,6 @@ public func >=<T, Other>(_ lhs: EventLoopFuture<T>, _ rhs: EventLoopFuture<Other
     }
 }
 
-/// Returns a Boolean value indicating whether the two given futures are equal
-public func ==<T, Other>(_ lhs: EventLoopFuture<T>, _ rhs: EventLoopFuture<Other>) -> EventLoopFuture<Bool> where T: BinaryInteger, Other: BinaryInteger {
-    return lhs.and(rhs).map { (arg) -> Bool in
-        let (lhsVal, rhsVal) = arg
-        return lhsVal == rhsVal
-    }
-}
-
 /// Returns a Boolean value indicating whether the value of the first argument is greater than that of the second argument
 public func ><T>(_ lhs: EventLoopFuture<T>, _ rhs: EventLoopFuture<T>) -> EventLoopFuture<Bool> where T: BinaryInteger {
     return lhs.and(rhs).map { (arg) -> Bool in
@@ -224,7 +216,7 @@ public func ><T, Other>(_ lhs: EventLoopFuture<T>, _ rhs: EventLoopFuture<Other>
 public func << <T, RHS>(_ lhs: EventLoopFuture<T>, _ rhs: EventLoopFuture<RHS>) -> EventLoopFuture<T> where T: BinaryInteger, RHS: BinaryInteger {
     return lhs.and(rhs).map { (arg) -> T in
         let (lhsVal, rhsVal) = arg
-        return rhsVal << lhsVal as! T
+        return lhsVal << rhsVal
     }
 }
 
@@ -232,7 +224,7 @@ public func << <T, RHS>(_ lhs: EventLoopFuture<T>, _ rhs: EventLoopFuture<RHS>) 
 public func <<= <T, RHS>(_ lhs: inout EventLoopFuture<T>, _ rhs: EventLoopFuture<RHS>) where T: BinaryInteger, RHS: BinaryInteger {
     lhs = lhs.and(rhs).map { (arg) -> T in
         let (lhsVal, rhsVal) = arg
-        return rhsVal << lhsVal as! T
+        return lhsVal << rhsVal
     }
 }
 
@@ -240,7 +232,7 @@ public func <<= <T, RHS>(_ lhs: inout EventLoopFuture<T>, _ rhs: EventLoopFuture
 public func >> <T, RHS>(_ lhs: EventLoopFuture<T>, _ rhs: EventLoopFuture<RHS>) -> EventLoopFuture<T> where T: BinaryInteger, RHS: BinaryInteger {
     return lhs.and(rhs).map { (arg) -> T in
         let (lhsVal, rhsVal) = arg
-        return rhsVal >> lhsVal as! T
+        return lhsVal >> rhsVal
     }
 }
 
@@ -248,7 +240,7 @@ public func >> <T, RHS>(_ lhs: EventLoopFuture<T>, _ rhs: EventLoopFuture<RHS>) 
 public func >>= <T, RHS>(_ lhs: inout EventLoopFuture<T>, _ rhs: EventLoopFuture<RHS>) where T: BinaryInteger, RHS: BinaryInteger {
     lhs = lhs.and(rhs).map { (arg) -> T in
         let (lhsVal, rhsVal) = arg
-        return rhsVal >> lhsVal as! T
+        return lhsVal >> rhsVal
     }
 }
 
@@ -290,7 +282,7 @@ public func |=<T>(_ lhs: inout EventLoopFuture<T>, _ rhs: EventLoopFuture<T>) wh
 
 // MARK: - ~
 
-/// Returns the inverse of the bits set in the argument
+/// Returns the result of performing a bitwise NOT operation on the given future
 prefix func ~<T>(_ x: EventLoopFuture<T>) -> EventLoopFuture<T> where T: BinaryInteger {
     return x.map { xVal -> T in
         return ~xVal
