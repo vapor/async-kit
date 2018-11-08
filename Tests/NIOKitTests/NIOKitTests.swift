@@ -2,5 +2,11 @@ import XCTest
 @testable import NIOKit
 
 final class NIOKitTests: XCTestCase {
-    static var allTests: [(String, (NIOKitTests) -> ()throws -> ())] = []
+    func testUniverseSanity() {
+        XCTAssert(true)
+    }
+
+    static let allTests = [
+        ("testUniverseSanity", testUniverseSanity)
+    ]
 }
