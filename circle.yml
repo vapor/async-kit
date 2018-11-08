@@ -30,7 +30,7 @@ jobs:
       - image: swift:4.2
     steps:
       - checkout
-      - swift build -c release
+      - run: swift build -c release
 
 
 workflows:
