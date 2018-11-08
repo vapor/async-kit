@@ -1,6 +1,5 @@
 //
 //  FutureOperatorsTests.swift
-//  NIOKitTests
 //
 //  Created by Jari (LotU) on 06/11/2018.
 //
@@ -158,8 +157,8 @@ final class FutureOperatorTests: XCTestCase {
     }
     
     static var allTests = [
-        "testAddition", "testSubtraction", "testMultiplication",
-        "testModulo", "testDivision", "testComparison", "testBitshifts",
-        "testAND", "testXOR", "testOR", "testNOT"
+        ("testAddition", testAddition), ("testSubtraction", testSubtraction), ("testMultiplication", testMultiplication),
+        ("testModulo", testModulo), ("testDivision", testDivision), ("testComparison", testComparison), ("testBitshifts", testBitshifts),
+        ("testAND", testAND), ("testXOR", testXOR), ("testOR", testOR), ("testNOT", testNOT)
     ]
 }

@@ -1,6 +1,5 @@
 //
 //  FutureOperators.swift
-//  NIOKit
 //
 //  Created by Jari (LotU) on 06/11/2018.
 //
