@@ -13,25 +13,19 @@ jobs:
     docker:
       - image: swift:4.2
     steps:
+      steps:
       - checkout
-      - run: 
-          name: Compile code
-          command: swift build
-      - run: 
-          name: Run unit tests
-          command: swift test
+      - run: swift build
+      - run: swift test
 
-  linux-41:
+  linux-50:
     docker:
-      - image: codevapor/swift:4.1
+      - image: codevapor/swift:5.0
     steps:
+      steps:
       - checkout
-      - run: 
-          name: Compile code
-          command: swift build
-      - run: 
-          name: Run unit tests
-          command: swift test
+      - run: swift build
+      - run: swift test
 
   linux-release:
     docker:
@@ -48,19 +42,6 @@ workflows:
   tests:
     jobs:
       - linux
-      - linux-41
+      - linux-50
       - linux-release
-       - macos
-
-  nightly:
-    triggers:
-      - schedule:
-          cron: "0 0 * * *"
-          filters:
-            branches:
-              only:
-                - master
-                
-    jobs:
-      - linux
       - macos
