@@ -1,6 +1,6 @@
 import XCTest
 
-@testable import NIOKit
+@testable import NIOKitTests
 
 var tests = [XCTestCaseEntry]()
 tests += NIOKitTests.allTests()

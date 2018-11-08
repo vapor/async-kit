@@ -1,7 +1,7 @@
 import XCTest
 
 #if !os(macOS)
-public func allTests() -> [XCTestCaseEntry] {
+public func allTests() -> [(String, (XCTestCase) -> ()throws -> ())] {
     return [
         testCase(NIOKitTests.allTests),
     ]
