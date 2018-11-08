@@ -2,6 +2,7 @@ import XCTest
 
 @testable import NIOKitTests
 
-var tests = [XCTestCaseEntry]()
-tests += NIOKitTests.allTests
+var tests = [
+    testCase(NIOKitTests.allTests)
+]
 XCTMain(tests)
