@@ -13,7 +13,6 @@ jobs:
     docker:
       - image: swift:4.2
     steps:
-      steps:
       - checkout
       - run: swift build
       - run: swift test
@@ -22,7 +21,6 @@ jobs:
     docker:
       - image: codevapor/swift:5.0
     steps:
-      steps:
       - checkout
       - run: swift build
       - run: swift test
@@ -32,9 +30,7 @@ jobs:
       - image: swift:4.2
     steps:
       - checkout
-      - run: 
-          name: Compile code with optimizations
-          command: swift build -c release
+      - swift build -c release
 
 
 workflows:
