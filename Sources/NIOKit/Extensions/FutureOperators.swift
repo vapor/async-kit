@@ -1,9 +1,3 @@
-//
-//  FutureOperators.swift
-//
-//  Created by Jari (LotU) on 06/11/2018.
-//
-
 import NIO
 
 // MARK: - +
