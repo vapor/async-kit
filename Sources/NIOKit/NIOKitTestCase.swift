@@ -20,15 +20,15 @@ extension NIOKitTestCaseProt {
     }
 }
 
-public class NIOKitTestCase: XCTestCase, NIOKitTestCaseProt {
-    public var group: EventLoopGroup!
+open class NIOKitTestCase: XCTestCase, NIOKitTestCaseProt {
+    open var group: EventLoopGroup!
     
-    override public func setUp() {
+    override open func setUp() {
         super.setUp()
         setupGroup()
     }
     
-    override public func tearDown() {
+    override open func tearDown() {
         teardownGroup()
         super.tearDown()
     }
