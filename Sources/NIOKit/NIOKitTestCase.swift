@@ -1,9 +1,3 @@
-//
-//  NIOKitTestCase.swift
-//
-//  Created by Jari (LotU) on 09/11/2018.
-//
-
 import NIO
 import XCTest
 
