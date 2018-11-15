@@ -1,15 +1,11 @@
 import NIO
 import XCTest
 
-protocol NIOKitTestCaseProt: class {
+protocol NIOKitTestCaseProtocol: class {
     var group: EventLoopGroup! { get set }
 }
 
-extension NIOKitTestCaseProt {
-    public var eventLoop: EventLoop {
-        return self.group.next()
-    }
-    
+extension NIOKitTestCaseProtocol {
     public func setupGroup() {
         self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
     }
@@ -20,8 +16,12 @@ extension NIOKitTestCaseProt {
     }
 }
 
-open class NIOKitTestCase: XCTestCase, NIOKitTestCaseProt {
+open class NIOKitTestCase: XCTestCase, NIOKitTestCaseProtocol {
     open var group: EventLoopGroup!
+    
+    open var eventLoop: EventLoop {
+        return self.group.next()
+    }
     
     override open func setUp() {
         super.setUp()
