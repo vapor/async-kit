@@ -6,29 +6,29 @@ protocol NIOKitTestCaseProt: class {
 }
 
 extension NIOKitTestCaseProt {
-    internal var eventLoop: EventLoop {
+    public var eventLoop: EventLoop {
         return self.group.next()
     }
     
-    internal func setupGroup() {
+    public func setupGroup() {
         self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
     }
     
-    internal func teardownGroup() {
+    public func teardownGroup() {
         XCTAssertNoThrow(try self.group.syncShutdownGracefully())
         self.group = nil
     }
 }
 
-class NIOKitTestCase: XCTestCase, NIOKitTestCaseProt {
-    var group: EventLoopGroup!
+public class NIOKitTestCase: XCTestCase, NIOKitTestCaseProt {
+    public var group: EventLoopGroup!
     
-    override func setUp() {
+    override public func setUp() {
         super.setUp()
         setupGroup()
     }
     
-    override func tearDown() {
+    override public func tearDown() {
         teardownGroup()
         super.tearDown()
     }
