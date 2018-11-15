@@ -2,22 +2,7 @@ import XCTest
 import NIO
 @testable import NIOKit
 
-final class FutureOperatorTests: XCTestCase {
-    
-    private var group: EventLoopGroup!
-    private var eventLoop: EventLoop {
-        return group.next()
-    }
-    
-    override func setUp() {
-        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-        
-    }
-    
-    override func tearDown() {
-        XCTAssertNoThrow(try self.group.syncShutdownGracefully())
-        self.group = nil
-    }
+final class FutureOperatorTests: NIOKitTestCase {
     
     func testAddition() throws {
         var future1 = eventLoop.newSucceededFuture(result: 8)
