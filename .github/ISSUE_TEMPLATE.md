@@ -20,7 +20,7 @@
 ### Environment
 
 <!-- We must know your exact environment or it is very difficult to help. -->
-<!-- Hint: use `vapor --version` in the root directory of your Vapor project. -->
 
 * NIOKit version:
 * SwiftNIO version:
+* Linux or macOS?
