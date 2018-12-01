@@ -10,7 +10,7 @@ We give you a few sections to fill out to help us hunt down the issue more effec
 
 ## Pull Requests
 
-We are always willing to have pull request's open for bug fixes or feature requests.
+We are always willing to have pull requests open for bug fixes or new features.
 
 Bug fixes are pretty straight forward. Open up a PR and a maintainer will help guide you to make sure everything is in good order.
 
