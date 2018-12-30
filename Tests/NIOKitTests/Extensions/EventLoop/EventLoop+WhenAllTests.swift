@@ -19,19 +19,19 @@ final class EventLoopWhenAllTests: XCTestCase {
 
     func testFailuresStillSucceed() {
         let future: EventLoopFuture<[Result<Bool, Error>]> = eventLoop.whenAllComplete([
-            eventLoop.newSucceededFuture(result: true),
-            eventLoop.newFailedFuture(error: NSError(domain: "NIOKit", code: 1, userInfo: nil))
+            eventLoop.makeSucceededFuture(result: true),
+            eventLoop.makeFailedFuture(error: NSError(domain: "NIOKit", code: 1, userInfo: nil))
         ])
         XCTAssertNoThrow(try future.wait())
     }
 
     func testSuccessProvidesResults() throws {
         let results: [Result<Int, Error>] = try eventLoop.whenAllComplete([
-            eventLoop.newSucceededFuture(result: 3),
-            eventLoop.newFailedFuture(error: NSError(domain: "NIOKit", code: 1, userInfo: nil)),
-            eventLoop.newSucceededFuture(result: 10),
-            eventLoop.newFailedFuture(error: NSError(domain: "NIOKit", code: 3, userInfo: nil)),
-            eventLoop.newSucceededFuture(result: 5)
+            eventLoop.makeSucceededFuture(result: 3),
+            eventLoop.makeFailedFuture(error: NSError(domain: "NIOKit", code: 1, userInfo: nil)),
+            eventLoop.makeSucceededFuture(result: 10),
+            eventLoop.makeFailedFuture(error: NSError(domain: "NIOKit", code: 3, userInfo: nil)),
+            eventLoop.makeSucceededFuture(result: 5)
         ]).wait()
 
         for i in [0, 2, 4] {
@@ -45,7 +45,7 @@ final class EventLoopWhenAllTests: XCTestCase {
 
     func testSuccessMaintainsOrder() throws {
         func createExpensiveFuture(id: Int, result: Int) -> EventLoopFuture<Int> {
-            let promise: EventLoopPromise<Int> = eventLoop.newPromise()
+            let promise = eventLoop.makePromise(of: Int.self)
 
             DispatchQueue(label: "background_thread_\(id)").async {
                 usleep(UInt32(id * 5 * 50_000))
@@ -58,7 +58,7 @@ final class EventLoopWhenAllTests: XCTestCase {
         let results: [Result<Int, Error>] = try eventLoop.whenAllComplete([
             createExpensiveFuture(id: 3, result: 3),
             createExpensiveFuture(id: 2, result: 10),
-            eventLoop.newFailedFuture(error: NSError(domain: "NIOKit", code: 1, userInfo: nil)),
+            eventLoop.makeFailedFuture(error: NSError(domain: "NIOKit", code: 1, userInfo: nil)),
             createExpensiveFuture(id: 1, result: 15)
         ]).wait()
 
@@ -69,8 +69,8 @@ final class EventLoopWhenAllTests: XCTestCase {
 
     func testNotifyFailuresStillSucceed() {
         XCTAssertNoThrow(try eventLoop.whenAllComplete([
-            eventLoop.newSucceededFuture(result: true),
-            eventLoop.newFailedFuture(error: NSError(domain: "NIOKit", code: 1, userInfo: nil))
+            eventLoop.makeSucceededFuture(result: true),
+            eventLoop.makeFailedFuture(error: NSError(domain: "NIOKit", code: 1, userInfo: nil))
         ]).thenThrowing { }.wait())
     }
 }

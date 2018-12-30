@@ -12,7 +12,7 @@ extension EventLoop {
     /// - Parameter futures: An array of futures to gather results from.
     /// - Returns: A new `EventLoopFuture` with all the results of the provided futures.
     public func whenAllComplete<T>(_ futures: [EventLoopFuture<T>]) -> EventLoopFuture<[Result<T, Error>]> {
-        let promise: EventLoopPromise<[Result<T, Error>]> = self.newPromise()
+        let promise = self.makePromise(of: [Result<T, Error>].self)
 
         var results = [(Int, Result<T, Error>)]()
         var remaining = futures.count
@@ -45,7 +45,7 @@ extension EventLoop {
     /// - Parameter futures: An array of futures to gather results from.
     /// - Returns: A new `EventLoopFuture` that succeeds after the providied futures complete.
     public func whenAllComplete<T>(_ futures: [EventLoopFuture<T>]) -> EventLoopFuture<Void> {
-        let promise: EventLoopPromise<Void> = newPromise()
+        let promise = self.makePromise(of: Void.self)
 
         var remaining = futures.count
 
