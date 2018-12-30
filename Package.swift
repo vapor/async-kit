@@ -8,7 +8,9 @@ let package = Package(
         .library(name: "nio-kit", targets: ["NIOKit"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-nio.git", from: "1.10.0")
+        // TODO: Pin to semver release
+        // Pulling in SwiftNIO 'master' should only happen during beta development!
+        .package(url: "https://github.com/apple/swift-nio.git", .branch("master"))
     ],
     targets: [
         .target(name: "NIOKit", dependencies: ["NIO"]),
