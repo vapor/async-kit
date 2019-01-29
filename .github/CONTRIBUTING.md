@@ -30,3 +30,10 @@ New features are little more complex. If you come up with an idea, you should fo
 	You can open a PR that adds a breaking change, but it will have to hang around until the next major version to be merged because the repo follows sem-ver.
 	
 - After everything is okayed, one of the maintainers will merge the PR and tag a new release. Congratulations on your contribution!
+
+# Maintainers
+
+- [@MrLotU](https://github.com/MrLotU)
+- [@calebkleveter](https://github.com/calebkleveter)
+
+See the [Vapor maintainers doc](https://github.com/vapor/vapor/blob/master/Docs/maintainers.md) for more information. 
