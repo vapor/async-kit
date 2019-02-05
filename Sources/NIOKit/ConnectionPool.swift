@@ -1,6 +1,6 @@
 /// Source of new connections for `ConnectionPool`.
 public protocol ConnectionPoolSource {
-    /// Assocsiated `ConnectionPoolItem` that will be returned by `makeConnection()`.
+    /// Associated `ConnectionPoolItem` that will be returned by `makeConnection()`.
     associatedtype Connection: ConnectionPoolItem
     
     /// This source's event loop.
