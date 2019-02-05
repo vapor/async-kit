@@ -66,7 +66,7 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
     private var activeConnections: Int
     
     /// All requests for a connection that were unable to be fulfilled
-    /// to to max connection limit having been reached.
+    /// due to max connection limit having been reached.
     private var waiters: [EventLoopPromise<Source.Connection>]
     
     /// Creates a new `ConnectionPool`.
