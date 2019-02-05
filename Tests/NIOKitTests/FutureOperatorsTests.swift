@@ -3,7 +3,6 @@ import NIO
 @testable import NIOKit
 
 final class FutureOperatorTests: XCTestCase {
-    
     private var group: EventLoopGroup!
     private var eventLoop: EventLoop {
         return group.next()
