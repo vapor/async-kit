@@ -157,7 +157,7 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
     /// - parameters:
     ///     - conn: Connection to release back to the pool.
     public func releaseConnection(_ conn: Source.Connection) {
-        // get the active connection for this connection
+        // add this connection back to the list of available
         self.available.append(conn)
         
         // now that we know a new connection is available, we should
