@@ -60,7 +60,7 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
 
     /// All currently available connections.
     /// - note: These connections may have closed since last use.
-    private var available: [Source.Connection]
+    private var available: CircularBuffer<Source.Connection>
     
     /// Current active connection count.
     private var activeConnections: Int
@@ -82,7 +82,7 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
     public init(config: ConnectionPoolConfig = .init(), source: Source) {
         self.config = config
         self.source = source
-        self.available = []
+        self.available = .init(initialCapacity: config.maxConnections)
         self.activeConnections = 0
         self.waiters = []
     }
@@ -125,7 +125,8 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
     ///
     /// - returns: A future containing the requested connection.
     public func requestConnection() -> EventLoopFuture<Source.Connection> {
-        if let conn = self.available.popLast() {
+        if !self.available.isEmpty {
+            let conn = self.available.removeFirst()
             // check if it is still open
             if !conn.isClosed {
                 // connection is still open, we can return it directly
