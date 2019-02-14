@@ -1,5 +1,5 @@
 import XCTest
-@testable import NIOKit
+import NIOKit
 
 public final class NIOKitTests: XCTestCase {
     func testUniverseSanity() {

@@ -1,6 +1,6 @@
 import XCTest
 import NIO
-@testable import NIOKit
+import NIOKit
 
 public final class FutureOperatorTests: XCTestCase {
     private var group: EventLoopGroup!
