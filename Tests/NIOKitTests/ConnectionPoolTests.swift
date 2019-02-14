@@ -1,7 +1,7 @@
 import NIOKit
 import XCTest
 
-final class ConnectionPoolTests: XCTestCase {
+public final class ConnectionPoolTests: XCTestCase {
     func testPooling() throws {
         let foo = FooDatabase()
         let pool = ConnectionPool(config: .init(maxConnections: 2), source: foo)
@@ -68,7 +68,7 @@ final class ConnectionPoolTests: XCTestCase {
         }
     }
     
-    static let allTests = [
+    public static let allTests = [
         ("testPooling", testPooling),
         ("testPerformance", testPerformance),
     ]

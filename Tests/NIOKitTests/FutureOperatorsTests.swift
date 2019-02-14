@@ -2,18 +2,18 @@ import XCTest
 import NIO
 @testable import NIOKit
 
-final class FutureOperatorTests: XCTestCase {
+public final class FutureOperatorTests: XCTestCase {
     private var group: EventLoopGroup!
     private var eventLoop: EventLoop {
         return group.next()
     }
     
-    override func setUp() {
+    public override func setUp() {
         self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
         
     }
     
-    override func tearDown() {
+    public override func tearDown() {
         XCTAssertNoThrow(try self.group.syncShutdownGracefully())
         self.group = nil
     }
@@ -149,7 +149,7 @@ final class FutureOperatorTests: XCTestCase {
         XCTAssertEqual(try ~future1.wait(), 0b11110000)
     }
     
-    static var allTests = [
+    public static var allTests = [
         ("testAddition", testAddition), ("testSubtraction", testSubtraction), ("testMultiplication", testMultiplication),
         ("testModulo", testModulo), ("testDivision", testDivision), ("testComparison", testComparison), ("testBitshifts", testBitshifts),
         ("testAND", testAND), ("testXOR", testXOR), ("testOR", testOR), ("testNOT", testNOT)
