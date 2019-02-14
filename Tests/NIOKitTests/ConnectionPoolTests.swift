@@ -40,6 +40,7 @@ final class ConnectionPoolTests: XCTestCase {
     }
     
     func testPerformance() {
+        guard performance(expected: 3.14) else { return }
         let foo = FooDatabase()
         let pool = ConnectionPool(config: .init(maxConnections: 10), source: foo)
         
@@ -97,4 +98,13 @@ private final class FooConnection: ConnectionPoolItem {
     func close() {
         self.isClosed = true
     }
+}
+
+func performance(expected seconds: Double, name: String = #function) -> Bool {
+    guard !_isDebugAssertConfiguration() else {
+        print("[PERFORMANCE] Skipping \(name) in debug build mode")
+        return false
+    }
+    print("[PERFORMANCE] \(name) expected: \(seconds) seconds")
+    return true
 }
