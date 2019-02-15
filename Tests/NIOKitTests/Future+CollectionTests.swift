@@ -37,7 +37,7 @@ final class FutureCollectionTests: XCTestCase {
         }
     }
     
-    let allTests = [
+    static let allTests = [
         ("testMapEach", testMapEach),
         ("testThrowMapEach", testThrowMapEach)
     ]
