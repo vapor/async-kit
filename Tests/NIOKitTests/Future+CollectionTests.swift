@@ -19,7 +19,26 @@ final class FutureCollectionTests: XCTestCase {
         try XCTAssertEqual(times2.wait(), [2, 4, 6, 8, 10, 12, 14, 16, 18])
     }
     
+    func testThrowMapEach() throws {
+        let collection = eventLoop.makeSucceededFuture([1, 2, 3, 4, 5, 6, 7, 8, 9])
+        let times2 = collection.mapEach { int in
+            if int == 5 {
+                throw NSError(domain: "com.vapor.niokit", code: 0, userInfo: [:])
+            } else {
+                return int * 2
+            }
+        }
+        
+        do {
+            try times2.wait()
+            XCTFail("Expected failed future")
+        } catch {
+            // Sucess...
+        }
+    }
+    
     let allTests = [
-        ("testMapEach", testMapEach)
+        ("testMapEach", testMapEach),
+        ("testThrowMapEach", testThrowMapEach)
     ]
 }
