@@ -14,7 +14,7 @@ extension EventLoopFuture where Value: Sequence {
     ///   - transform: The closure that each element in the sequence is passed into.
     ///   - element: The element from the sequence that you can operate on.
     /// - returns: A new `EventLoopFuture` that wraps that sequence of transformed elements.
-    func mapEach<Result>(_ transform: @escaping (_ element: Value.Element)throws -> Result) -> EventLoopFuture<[Result]> {
+    public func mapEach<Result>(_ transform: @escaping (_ element: Value.Element)throws -> Result) -> EventLoopFuture<[Result]> {
         return self.flatMapThrowing { collection -> [Result] in
             return try collection.map(transform)
         }
