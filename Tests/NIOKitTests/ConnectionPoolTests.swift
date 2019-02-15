@@ -68,7 +68,7 @@ public final class ConnectionPoolTests: XCTestCase {
     }
     
     func testPerformance() {
-        guard performance(expected: 0.115) else { return }
+        guard performance(expected: 0.088) else { return }
         let foo = FooDatabase()
         let pool = ConnectionPool(config: .init(maxConnections: 10), source: foo)
         
