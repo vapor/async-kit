@@ -39,6 +39,34 @@ public final class ConnectionPoolTests: XCTestCase {
         XCTAssertEqual(foo.connectionsCreated, 3)
     }
     
+    func testFIFOWaiters() throws {
+        let foo = FooDatabase()
+        let pool = ConnectionPool(config: .init(maxConnections: 1), source: foo)
+        // * User A makes a request for a connection, gets connection number 1.
+        let a_1 = pool.requestConnection()
+        let a = try a_1.wait()
+        
+        // * User B makes a request for a connection, they are exhausted so he gets a promise.
+        let b_1 = pool.requestConnection()
+        
+        // * User A makes another request for a connection, they are still exhausted so he gets a promise.
+        let a_2 = pool.requestConnection()
+        
+        // * User A returns connection number 1. His previous request is fulfilled with connection number 1.
+        pool.releaseConnection(a)
+        
+        // * User B gets his connection
+        let b = try b_1.wait()
+        XCTAssert(a === b)
+        
+        // * User B releases his connection
+        pool.releaseConnection(b)
+        
+        // * User A's second connection request is fulfilled
+        let c = try a_2.wait()
+        XCTAssert(a === c)
+    }
+    
     func testPerformance() {
         guard performance(expected: 0.115) else { return }
         let foo = FooDatabase()
@@ -70,6 +98,7 @@ public final class ConnectionPoolTests: XCTestCase {
     
     public static let allTests = [
         ("testPooling", testPooling),
+        ("testFIFOWaiters", testFIFOWaiters),
         ("testPerformance", testPerformance),
     ]
 }
