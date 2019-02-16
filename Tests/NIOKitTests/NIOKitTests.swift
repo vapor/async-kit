@@ -1,8 +1,9 @@
 import XCTest
 @testable import NIOKit
 
-final class NIOKitTests: XCTestCase {
+final class NIOKitTests: NIOKitTestCase {
     func testUniverseSanity() {
+        print(self.eventLoop)
         XCTAssert(true)
     }
 
