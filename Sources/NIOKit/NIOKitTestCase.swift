@@ -22,8 +22,8 @@ open class NIOKitTestCase: XCTestCase {
     /// Sets up the TestCase for use
     /// and initializes the EventLoopGroup
     override open func setUp() {
+        super.setUp()
         self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-        setupGroup()
     }
     
     /// Tears down the TestCase and
