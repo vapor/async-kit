@@ -1,14 +1,13 @@
-// swift-tools-version:4.2
-
+// swift-tools-version:5.0
 import PackageDescription
 
 let package = Package(
     name: "nio-kit",
     products: [
-        .library(name: "nio-kit", targets: ["NIOKit"]),
+        .library(name: "NIOKit", targets: ["NIOKit"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-nio.git", from: "1.10.0")
+        .package(url: "https://github.com/apple/swift-nio.git", .branch("master"))
     ],
     targets: [
         .target(name: "NIOKit", dependencies: ["NIO"]),
