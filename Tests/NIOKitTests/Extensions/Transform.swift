@@ -10,23 +10,14 @@ final class TransformTests: NIOKitTestCase {
         
         let futureA = eventLoop.newSucceededFuture(result: Int.random(in: 0...100))
         let futureB = eventLoop.newSucceededFuture(result: Int.random(in: 0...100))
-        let futureC = eventLoop.newSucceededFuture(result: Int.random(in: 0...100))
-        let futureD = eventLoop.newSucceededFuture(result: Int.random(in: 0...100))
-        let futureE = eventLoop.newSucceededFuture(result: Int.random(in: 0...100))
         
-        XCTAssert(try transform(futureA, futureB, to: true).wait())
-        XCTAssert(try transform(futureA, futureB, futureC, to: true).wait())
-        XCTAssert(try transform(futureA, futureB, futureC, futureD, to: true).wait())
-        XCTAssert(try transform(futureA, futureB, futureC, futureD, futureE, to: true).wait())
+        XCTAssert(try futureA.and(futureB).transform(to: true).wait())
         
         let futureBool = eventLoop.newSucceededFuture(result: true)
         
         XCTAssert(try future.transform(to: futureBool).wait())
         
-        XCTAssert(try transform(futureA, futureB, to: futureBool).wait())
-        XCTAssert(try transform(futureA, futureB, futureC, to: futureBool).wait())
-        XCTAssert(try transform(futureA, futureB, futureC, futureD, to: futureBool).wait())
-        XCTAssert(try transform(futureA, futureB, futureC, futureD, futureE, to: futureBool).wait())
+        XCTAssert(try futureA.and(futureB).transform(to: futureBool).wait())
     }
     
     static var allTests = [
