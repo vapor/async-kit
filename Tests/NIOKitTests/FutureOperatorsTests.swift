@@ -2,7 +2,7 @@ import XCTest
 import NIO
 import NIOKit
 
-final class FutureOperatorTests: NIOKitTestCase {    
+public final class FutureOperatorTests: NIOKitTestCase {    
     func testAddition() throws {
         var future1 = eventLoop.makeSucceededFuture(8)
         let future2 = eventLoop.makeSucceededFuture(5)
