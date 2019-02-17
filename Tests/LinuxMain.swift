@@ -4,7 +4,8 @@ import XCTest
 
 var tests = [
     testCase(NIOKitTests.allTests),
+    testCase(TransformTests.allTests),
     testCase(FutureOperatorTests.allTests),
-    testCase(TransformTests.allTests)
+    testCase(ConnectionPoolTests.allTests)
 ]
 XCTMain(tests)
