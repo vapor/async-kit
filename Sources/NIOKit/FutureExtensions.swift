@@ -7,8 +7,11 @@ public extension EventLoopFuture {
         whenComplete { result in
             switch result {
             case .success(let value):
-                if callback(value) { promise.succeed(value) }
-                else { promise.fail(error()) }
+                if callback(value) {
+                    promise.succeed(value)
+                } else {
+                    promise.fail(error())
+                }
             case .failure(let error): promise.fail(error)
             }
         }
