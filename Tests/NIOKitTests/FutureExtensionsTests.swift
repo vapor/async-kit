@@ -29,7 +29,7 @@ final class FutureExtensionsTests: XCTestCase {
     }
     
     static var allTests = [
-        ("testGuard", testGuard)
+        ("testGuard", testGuard),
     ]
 }
 
