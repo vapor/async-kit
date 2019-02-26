@@ -67,7 +67,7 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
     
     /// All requests for a connection that were unable to be fulfilled
     /// due to max connection limit having been reached.
-    private var waiters: [EventLoopPromise<Source.Connection>]
+    private var waiters: CircularBuffer<EventLoopPromise<Source.Connection>>
     
     /// Creates a new `ConnectionPool`.
     ///
@@ -83,8 +83,9 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
         self.config = config
         self.source = source
         self.available = []
+        self.available.reserveCapacity(config.maxConnections)
         self.activeConnections = 0
-        self.waiters = []
+        self.waiters = .init(initialCapacity: 0)
     }
     
     /// Fetches a pooled connection for the lifetime of the closure.
@@ -134,7 +135,7 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
                 // connection is closed, we need to replace it
                 return self.source.makeConnection()
             }
-        } else if self.activeConnections < config.maxConnections  {
+        } else if self.activeConnections < self.config.maxConnections  {
             // all connections are busy, but we have room to open a new connection!
             self.activeConnections += 1
             
@@ -162,8 +163,10 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
         
         // now that we know a new connection is available, we should
         // take this chance to fulfill one of the waiters
-        if let waiter = self.waiters.popLast() {
-            self.requestConnection().cascade(to: waiter)
+        if !self.waiters.isEmpty {
+            self.requestConnection().cascade(
+                to: self.waiters.removeFirst()
+            )
         }
     }
 }
