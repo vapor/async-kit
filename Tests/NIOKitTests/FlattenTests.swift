@@ -1,7 +1,7 @@
 import NIOKit
 import XCTest
 
-final class FlattenTests: NIOKitTestCase {
+public final class FlattenTests: NIOKitTestCase {
     func testELFlatten()throws {
         let futures = [
             self.eventLoop.makeSucceededFuture(1),
@@ -45,7 +45,7 @@ final class FlattenTests: NIOKitTestCase {
         try XCTAssertEqual(flattened.wait(), [1, 2, 3, 4, 5, 6, 7])
     }
     
-    static let allTests = [
+    public static let allTests = [
         ("testELFlatten", testELFlatten),
         ("testCollectionFlatten", testCollectionFlatten)
     ]
