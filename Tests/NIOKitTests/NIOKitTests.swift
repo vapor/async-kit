@@ -1,12 +1,13 @@
 import XCTest
-@testable import NIOKit
+import NIOKit
 
-final class NIOKitTests: XCTestCase {
+public final class NIOKitTests: NIOKitTestCase {
     func testUniverseSanity() {
+        print(self.eventLoop)
         XCTAssert(true)
     }
 
-    static let allTests = [
+    public static let allTests = [
         ("testUniverseSanity", testUniverseSanity)
     ]
 }

@@ -1,5 +1,3 @@
-import NIO
-
 // MARK: - +
 
 /// Adds two futures and produces their sum
