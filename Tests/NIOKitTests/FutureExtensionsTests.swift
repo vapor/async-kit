@@ -1,6 +1,5 @@
 import XCTest
-import NIO
-@testable import NIOKit
+import NIOKit
 
 public final class FutureExtensionsTests: NIOKitTestCase {
     func testGuard() {
