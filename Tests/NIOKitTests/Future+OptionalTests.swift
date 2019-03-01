@@ -2,22 +2,19 @@ import NIOKit
 import XCTest
 
 final class FutureOptionalTests: NIOKitTestCase {
-    func testMapOptional() throws {
+    func testFlatMapOptionalThrowing() throws {
         let future = self.eventLoop.makeSucceededFuture(Optional<Int>.some(1))
         let null = self.eventLoop.makeSucceededFuture(Optional<Int>.none)
         
-        let times2 = future.mapOptional { $0 * 2 }
-        let null2 = null.mapOptional { $0 * 2 }
+        var times2 = future.flatMapOptionalThrowing { $0 * 2 }
+        var null2 = null.flatMapOptionalThrowing { $0 * 2 }
         
         try XCTAssertEqual(2, times2.wait())
         try XCTAssertEqual(nil, null2.wait())
-    }
-    
-    func testCompactMap() throws {
-        let future = self.eventLoop.makeSucceededFuture(Optional<Int>.some(1))
         
-        let times2 = future.compactMap { $0 * 2 }
-        let null2 = future.compactMap { return $0 % 2 == 0 ? $0 : nil }
+        
+        times2 = future.flatMapOptionalThrowing { $0 * 2 }
+        null2 = future.flatMapOptionalThrowing { return $0 % 2 == 0 ? $0 : nil }
         
         try XCTAssertEqual(2, times2.wait())
         try XCTAssertEqual(nil, null2.wait())
@@ -53,8 +50,7 @@ final class FutureOptionalTests: NIOKitTestCase {
     }
     
     static let allTests = [
-        ("testMapOptional", testMapOptional),
-        ("testCompactMap", testCompactMap),
+        ("testFlatMapOptionalThrowing", testFlatMapOptionalThrowing),
         ("testFlatMapOptional", testFlatMapOptional),
         ("testCompactFlatMap", testCompactFlatMap)
     ]
