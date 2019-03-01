@@ -9,7 +9,7 @@ extension EventLoop {
     /// - Parameter futures: An array of futures to flatten into a single `EventLoopFuture`.
     /// - Returns: A new `EventLoopFuture` with all the resolved values of the input collection.
     public func flatten<T>(_ futures: [EventLoopFuture<T>]) -> EventLoopFuture<[T]> {
-        return EventLoopFuture.reduce(into: [T](), futures, eventLoop: self, { (a, r) in a.append(r) })
+        return EventLoopFuture<[T]>.reduce(into: [], futures, on: self) { array, value in array.append(value) }
     }
 
     /// Returns a new `EventLoopFuture` that succeeds only when all the provided futures succeed,
@@ -19,7 +19,7 @@ extension EventLoop {
     /// `EventLoopFuture` objects will be ignored.
     /// - Parameter futures: An array of futures to wait for.
     /// - Returns: A new `EventLoopFuture`.
-    public func flatten<T>(_ futures: [EventLoopFuture<T>]) -> EventLoopFuture<Void> {
-        return EventLoopFuture<Void>.reduce((), futures, eventLoop: self) { _, _ in }
+    public func flatten(_ futures: [EventLoopFuture<Void>]) -> EventLoopFuture<Void> {
+        return EventLoopFuture<Void>.reduce((), futures, on: self) { _, _ in }
     }
 }
