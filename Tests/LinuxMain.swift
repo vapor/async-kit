@@ -1,11 +1,14 @@
 import XCTest
 
-@testable import NIOKitTests
+import NIOKitTests
 
 var tests = [
     testCase(NIOKitTests.allTests),
-    testCase(FutureOptionalTests.allTests),
+    testCase(FlattenTests.allTests),
+    testCase(TransformTests.allTests),
     testCase(FutureOperatorTests.allTests),
-    testCase(ConnectionPoolTests.allTests)
+    testCase(ConnectionPoolTests.allTests),
+    testCase(FutureOptionalTests.allTests),
+    testCase(FutureExtensionsTests.allTests)
 ]
 XCTMain(tests)

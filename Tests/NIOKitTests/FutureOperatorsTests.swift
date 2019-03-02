@@ -1,8 +1,8 @@
 import XCTest
 import NIO
-@testable import NIOKit
+import NIOKit
 
-final class FutureOperatorTests: NIOKitTestCase {    
+public final class FutureOperatorTests: NIOKitTestCase {    
     func testAddition() throws {
         var future1 = eventLoop.makeSucceededFuture(8)
         let future2 = eventLoop.makeSucceededFuture(5)
@@ -134,7 +134,7 @@ final class FutureOperatorTests: NIOKitTestCase {
         XCTAssertEqual(try ~future1.wait(), 0b11110000)
     }
     
-    static var allTests = [
+    public static var allTests = [
         ("testAddition", testAddition), ("testSubtraction", testSubtraction), ("testMultiplication", testMultiplication),
         ("testModulo", testModulo), ("testDivision", testDivision), ("testComparison", testComparison), ("testBitshifts", testBitshifts),
         ("testAND", testAND), ("testXOR", testXOR), ("testOR", testOR), ("testNOT", testNOT)
