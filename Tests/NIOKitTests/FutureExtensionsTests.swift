@@ -1,8 +1,7 @@
 import XCTest
-import NIO
-@testable import NIOKit
+import NIOKit
 
-final class FutureExtensionsTests: NIOKitTestCase {
+public final class FutureExtensionsTests: NIOKitTestCase {
     func testGuard() {
         let future1 = eventLoop.makeSucceededFuture(1)
         let guardedFuture1 = future1.guard({ $0 == 1 }, else: TestError.notEqualTo1)
@@ -13,7 +12,7 @@ final class FutureExtensionsTests: NIOKitTestCase {
         XCTAssertThrowsError(try guardedFuture2.wait())
     }
     
-    static var allTests = [
+    public static var allTests = [
         ("testGuard", testGuard),
     ]
 }

@@ -1,8 +1,7 @@
 import XCTest
-import NIO
-@testable import NIOKit
+import NIOKit
 
-final class TransformTests: NIOKitTestCase {
+public final class TransformTests: NIOKitTestCase {
     func testTransforms() throws {
         let future = eventLoop.makeSucceededFuture(Int.random(in: 0...100))
         
@@ -20,7 +19,7 @@ final class TransformTests: NIOKitTestCase {
         XCTAssert(try futureA.and(futureB).transform(to: futureBool).wait())
     }
     
-    static var allTests = [
+    public static var allTests = [
         ("testTransforms", testTransforms)
     ]
 }

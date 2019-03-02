@@ -4,6 +4,7 @@ import NIOKitTests
 
 var tests = [
     testCase(NIOKitTests.allTests),
+    testCase(FlattenTests.allTests),
     testCase(TransformTests.allTests),
     testCase(FutureOperatorTests.allTests),
     testCase(ConnectionPoolTests.allTests),
