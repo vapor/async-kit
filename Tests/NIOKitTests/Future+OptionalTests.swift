@@ -1,7 +1,7 @@
 import NIOKit
 import XCTest
 
-final class FutureOptionalTests: NIOKitTestCase {
+public final class FutureOptionalTests: NIOKitTestCase {
     private enum NIOError: Error {
         case testError
     }
@@ -57,7 +57,7 @@ final class FutureOptionalTests: NIOKitTestCase {
         return self.group.next().makeSucceededFuture(b == nil ? nil : a * b!)
     }
     
-    static let allTests = [
+    public static let allTests = [
         ("testOptionalMap", testOptionalMap),
         ("testOptionalFlatMapThrowing", testOptionalFlatMapThrowing),
         ("testOptionalFlatMap", testOptionalFlatMap)
