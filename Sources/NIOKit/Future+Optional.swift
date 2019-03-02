@@ -5,7 +5,7 @@ extension EventLoopFuture {
     /// Calls a closure on an optional value in an `EventLoopFuture` if it exists.
     ///
     ///     let optional = eventLoop.future(Optional<Int>.some(42))
-    ///     let some = optional.mapOptional { int -> Float in
+    ///     let some = optional.flatMapOptionalThrowing { int -> Float in
     ///         return int * 3.14
     ///     }
     ///     // some: EventLoopFuture(Optional(131.88))
