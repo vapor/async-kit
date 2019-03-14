@@ -11,3 +11,4 @@
 - [ ] There are no breaking changes to public API.
 - [ ] New test cases have been added where appropriate.
 - [ ] All new code has been commented with doc blocks `///`.
+- [ ] The linuxMain.swift is regenerated using `swift test --generate-linuxmain`
