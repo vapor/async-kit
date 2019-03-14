@@ -1,13 +1,32 @@
 import XCTest
 import NIOKit
 
-public final class NIOKitTests: NIOKitTestCase {
+final class NIOKitTests: XCTestCase {
     func testUniverseSanity() {
         print(self.eventLoop)
         XCTAssert(true)
     }
-
-    public static let allTests = [
-        ("testUniverseSanity", testUniverseSanity)
-    ]
+    
+    /// This TestCases EventLoopGroup
+    var group: EventLoopGroup!
+    
+    /// Returns the next EventLoop from the `group`
+    var eventLoop: EventLoop {
+        return self.group.next()
+    }
+    
+    /// Sets up the TestCase for use
+    /// and initializes the EventLoopGroup
+    override func setUp() {
+        super.setUp()
+        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+    }
+    
+    /// Tears down the TestCase and
+    /// shuts down the EventLoopGroup
+    override func tearDown() {
+        XCTAssertNoThrow(try self.group.syncShutdownGracefully())
+        self.group = nil
+        super.tearDown()
+    }
 }
