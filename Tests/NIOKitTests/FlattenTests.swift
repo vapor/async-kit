@@ -1,7 +1,7 @@
 import NIOKit
 import XCTest
 
-public final class FlattenTests: NIOKitTestCase {
+final class FlattenTests: XCTestCase {
     func testELFlatten()throws {
         let futures = [
             self.eventLoop.makeSucceededFuture(1),
@@ -45,8 +45,26 @@ public final class FlattenTests: NIOKitTestCase {
         try XCTAssertEqual(flattened.wait(), [1, 2, 3, 4, 5, 6, 7])
     }
     
-    public static let allTests = [
-        ("testELFlatten", testELFlatten),
-        ("testCollectionFlatten", testCollectionFlatten)
-    ]
+    /// This TestCases EventLoopGroup
+    var group: EventLoopGroup!
+    
+    /// Returns the next EventLoop from the `group`
+    var eventLoop: EventLoop {
+        return self.group.next()
+    }
+    
+    /// Sets up the TestCase for use
+    /// and initializes the EventLoopGroup
+    override func setUp() {
+        super.setUp()
+        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+    }
+    
+    /// Tears down the TestCase and
+    /// shuts down the EventLoopGroup
+    override func tearDown() {
+        XCTAssertNoThrow(try self.group.syncShutdownGracefully())
+        self.group = nil
+        super.tearDown()
+    }
 }
