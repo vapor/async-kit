@@ -9,6 +9,13 @@ final class FutureCollectionTests: XCTestCase {
         try XCTAssertEqual(times2.wait(), [2, 4, 6, 8, 10, 12, 14, 16, 18])
     }
     
+    func testCompactMapEach() throws {
+        let collection = self.eventLoop.makeSucceededFutureco(["one", "2", "3", "4", "five", "^", "7"])
+        let times2 = collection.compactMapEach(Int.init)
+        
+        try XCTAssertEqual(times2.wait(), [2, 3, 4, 7])
+    }
+    
     func testFlatMapEach() throws {
         let collection = eventLoop.makeSucceededFuture([1, 2, 3, 4, 5, 6, 7, 8, 9])
         let times2 = collection.flatMapEach(on: self.eventLoop) { int -> EventLoopFuture<Int> in
