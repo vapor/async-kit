@@ -1,7 +1,7 @@
 import XCTest
 import NIOKit
 
-public final class FutureExtensionsTests: NIOKitTestCase {
+final class FutureExtensionsTests: XCTestCase {
     func testGuard() {
         let future1 = eventLoop.makeSucceededFuture(1)
         let guardedFuture1 = future1.guard({ $0 == 1 }, else: TestError.notEqualTo1)
@@ -12,9 +12,28 @@ public final class FutureExtensionsTests: NIOKitTestCase {
         XCTAssertThrowsError(try guardedFuture2.wait())
     }
     
-    public static var allTests = [
-        ("testGuard", testGuard),
-    ]
+    /// This TestCases EventLoopGroup
+    var group: EventLoopGroup!
+    
+    /// Returns the next EventLoop from the `group`
+    var eventLoop: EventLoop {
+        return self.group.next()
+    }
+    
+    /// Sets up the TestCase for use
+    /// and initializes the EventLoopGroup
+    override func setUp() {
+        super.setUp()
+        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+    }
+    
+    /// Tears down the TestCase and
+    /// shuts down the EventLoopGroup
+    override func tearDown() {
+        XCTAssertNoThrow(try self.group.syncShutdownGracefully())
+        self.group = nil
+        super.tearDown()
+    }
 }
 
 enum TestError: Error {

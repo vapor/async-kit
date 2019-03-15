@@ -5,9 +5,9 @@ extension EventLoopFuture {
     ///
     ///     user.save(on: req).transform(to: HTTPStatus.created)
     ///
-    public func transform<T>(to instance: T) -> EventLoopFuture<T> {
+    public func transform<T>(to instance: @escaping @autoclosure () -> T) -> EventLoopFuture<T> {
         return self.map { _ in
-            instance
+            instance()
         }
     }
     

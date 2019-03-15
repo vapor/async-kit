@@ -19,7 +19,7 @@ jobs:
       - image: codevapor/swift:5.0
     steps:
       - checkout
-      - run: swift test -c release
+      - run: swift test -c release -Xswiftc -enable-testing
 
 workflows:
   version: 2
