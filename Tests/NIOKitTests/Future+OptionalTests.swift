@@ -1,7 +1,7 @@
 import NIOKit
 import XCTest
 
-public final class FutureOptionalTests: NIOKitTestCase {
+public final class FutureOptionalTests: XCTestCase {
     private enum NIOError: Error {
         case testError
     }
@@ -49,6 +49,29 @@ public final class FutureOptionalTests: NIOKitTestCase {
         try XCTAssertEqual(nil, null2.wait())
     }
     
+    /// This TestCases EventLoopGroup
+    var group: EventLoopGroup!
+    
+    /// Returns the next EventLoop from the `group`
+    var eventLoop: EventLoop {
+        return self.group.next()
+    }
+    
+    /// Sets up the TestCase for use
+    /// and initializes the EventLoopGroup
+    public override func setUp() {
+        super.setUp()
+        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+    }
+    
+    /// Tears down the TestCase and
+    /// shuts down the EventLoopGroup
+    public override func tearDown() {
+        XCTAssertNoThrow(try self.group.syncShutdownGracefully())
+        self.group = nil
+        super.tearDown()
+    }
+    
     func multiply(_ a: Int, _ b: Int) -> EventLoopFuture<Int> {
         return self.group.next().makeSucceededFuture(a * b)
     }
@@ -56,10 +79,4 @@ public final class FutureOptionalTests: NIOKitTestCase {
     func multiply(_ a: Int, _ b: Int?) -> EventLoopFuture<Int?> {
         return self.group.next().makeSucceededFuture(b == nil ? nil : a * b!)
     }
-    
-    public static let allTests = [
-        ("testOptionalMap", testOptionalMap),
-        ("testOptionalFlatMapThrowing", testOptionalFlatMapThrowing),
-        ("testOptionalFlatMap", testOptionalFlatMap)
-    ]
 }
