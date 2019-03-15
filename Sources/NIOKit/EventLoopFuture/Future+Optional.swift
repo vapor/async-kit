@@ -17,7 +17,7 @@ extension EventLoopFuture {
     public func optionalMap<Wrapped, Result>(
         _ closure: @escaping (_ unwrapped: Wrapped) -> Result?
     ) -> EventLoopFuture<Result?> where Value == Optional<Wrapped> {
-        return self.map { optional in return optional.flatMap(closure) }
+        return self.map { $0.flatMap(closure) }
     }
     
     
@@ -35,10 +35,13 @@ extension EventLoopFuture {
     /// - returns: The result of the closure if the optional was unwrapped, or nil if it wasn't, wrapped in an `EventLoopFuture`.
     public func optionalFlatMap<Wrapped, Result>(
         _ closure: @escaping (_ unwrapped: Wrapped) -> EventLoopFuture<Result>
-    ) -> EventLoopFuture<Result?> where Value == Optional<Wrapped>
-    {
+    ) -> EventLoopFuture<Result?> where Value == Optional<Wrapped> {
         return self.flatMap { optional in
-            return optional.map(closure)?.map { $0 } ?? self.eventLoop.makeSucceededFuture(nil)
+            guard let future = optional.map(closure) else {
+                return self.eventLoop.makeSucceededFuture(nil)
+            }
+            
+            return future.map(Optional.init)
         }
     }
     
@@ -56,7 +59,7 @@ extension EventLoopFuture {
     /// - returns: The result of the closure if the optional was unwrapped, or nil if it wasn't, wrapped in an `EventLoopFuture`.
     public func optionalFlatMap<Wrapped, Result>(
         _ closure: @escaping (_ unwrapped: Wrapped) -> EventLoopFuture<Result?>
-        ) -> EventLoopFuture<Result?> where Value == Optional<Wrapped>
+    ) -> EventLoopFuture<Result?> where Value == Optional<Wrapped>
     {
         return self.flatMap { optional in
             return optional.flatMap(closure)?.map { $0 } ?? self.eventLoop.makeSucceededFuture(nil)
@@ -77,8 +80,7 @@ extension EventLoopFuture {
     /// - returns: The result of the closure if the optional was unwrapped, or nil if it wasn't, wrapped in an `EventLoopFuture`.
     public func optionalFlatMapThrowing<Wrapped, Result>(
         _ closure: @escaping (_ unwrapped: Wrapped) throws -> Result?
-    ) -> EventLoopFuture<Result?>
-        where Value == Optional<Wrapped>
+    ) -> EventLoopFuture<Result?> where Value == Optional<Wrapped>
     {
         return self.flatMapThrowing { optional in
             return try optional.flatMap(closure)
