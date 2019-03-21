@@ -216,9 +216,12 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
     public func close() -> EventLoopFuture<Void> {
         self.isClosed = true
         return self.available.map { $0.close() }.flatten(on: self.eventLoop).map {
+            // inform any waiters that they will never be receiving a connection
             while let waiter = self.waiters.popFirst() {
                 waiter.fail(ConnectionPoolError.closed)
             }
+            
+            // reset any variables to free up memory
             self.available = []
             self.activeConnections = 0
         }
