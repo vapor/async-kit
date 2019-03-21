@@ -36,7 +36,9 @@ public struct ConnectionPoolConfig {
     }
 }
 
+/// Errors thrown by `ConnectionPool`.
 public enum ConnectionPoolError: Error {
+    /// The connection pool is closed.
     case closed
 }
 
@@ -145,6 +147,7 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
         guard !self.isClosed else {
             return self.source.eventLoop.makeFailedFuture(ConnectionPoolError.closed)
         }
+        
         if let conn = self.available.popLast() {
             // check if it is still open
             if !conn.isClosed {
@@ -183,18 +186,33 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
     /// - parameters:
     ///     - conn: Connection to release back to the pool.
     public func releaseConnection(_ conn: Source.Connection) {
-        // add this connection back to the list of available
-        self.available.append(conn)
-        
-        // now that we know a new connection is available, we should
-        // take this chance to fulfill one of the waiters
-        if !self.waiters.isEmpty {
-            self.requestConnection().cascade(
-                to: self.waiters.removeFirst()
-            )
+        if self.isClosed {
+            // this pool is closed and we are responsible for closing all
+            // of our connections
+            _ = conn.close()
+        } else {
+            // add this connection back to the list of available
+            self.available.append(conn)
+            
+            // now that we know a new connection is available, we should
+            // take this chance to fulfill one of the waiters
+            if !self.waiters.isEmpty {
+                self.requestConnection().cascade(
+                    to: self.waiters.removeFirst()
+                )
+            }
         }
     }
     
+    /// Closes the connection pool.
+    ///
+    /// All available connections will be closed immediately.
+    /// Any connections currently in use will be closed when they are returned to the pool.
+    ///
+    /// Once closed, the connection pool cannot be used to create new connections.
+    /// Connection pools _must_ be closed before the deinitialize.
+    ///
+    /// - returns: A future indicating close completion.
     public func close() -> EventLoopFuture<Void> {
         return self.available.map { $0.close() }.flatten(on: self.eventLoop).map {
             while let waiter = self.waiters.popFirst() {
