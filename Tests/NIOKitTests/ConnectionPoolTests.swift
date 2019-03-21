@@ -5,6 +5,7 @@ public final class ConnectionPoolTests: XCTestCase {
     func testPooling() throws {
         let foo = FooDatabase()
         let pool = ConnectionPool(config: .init(maxConnections: 2), source: foo)
+        defer { try! pool.close().wait() }
         
         // make two connections
         let connA = try pool.requestConnection().wait()
@@ -32,7 +33,7 @@ public final class ConnectionPoolTests: XCTestCase {
         XCTAssertEqual(foo.connectionsCreated, 2)
         
         // this time, close the connection before releasing it
-        connC!.close()
+        try connC!.close().wait()
         pool.releaseConnection(connC!)
         XCTAssert(connD !== connB)
         XCTAssertEqual(connD?.isClosed, false)
@@ -42,6 +43,7 @@ public final class ConnectionPoolTests: XCTestCase {
     func testFIFOWaiters() throws {
         let foo = FooDatabase()
         let pool = ConnectionPool(config: .init(maxConnections: 1), source: foo)
+        defer { try! pool.close().wait() }
         // * User A makes a request for a connection, gets connection number 1.
         let a_1 = pool.requestConnection()
         let a = try a_1.wait()
@@ -65,6 +67,52 @@ public final class ConnectionPoolTests: XCTestCase {
         // * User A's second connection request is fulfilled
         let c = try a_2.wait()
         XCTAssert(a === c)
+    }
+    
+    
+    func testConnectError() throws {
+        let db = ErrorDatabase()
+        let pool = ConnectionPool(config: .init(maxConnections: 1), source: db)
+        defer { try! pool.close().wait() }
+        do {
+            _ = try pool.requestConnection().wait()
+            XCTFail("should not have created connection")
+        } catch _ as ErrorDatabase.Error {
+            // pass
+        }
+        
+        // test that we can still make another request even after a failed request
+        do {
+            _ = try pool.requestConnection().wait()
+            XCTFail("should not have created connection")
+        } catch _ as ErrorDatabase.Error {
+            // pass
+        }
+    }
+    
+    func testPoolClose() throws {
+        let foo = FooDatabase()
+        let pool = ConnectionPool(config: .init(maxConnections: 1), source: foo)
+        let _ = try pool.requestConnection().wait()
+        let b = pool.requestConnection()
+        try pool.close().wait()
+        let c = pool.requestConnection()
+        
+        // check that waiters are failed
+        do {
+            _ = try b.wait()
+            XCTFail("should not have created connection")
+        } catch ConnectionPoolError.closed {
+            // pass
+        }
+        
+        // check that new requests fail
+        do {
+            _ = try c.wait()
+            XCTFail("should not have created connection")
+        } catch ConnectionPoolError.closed {
+            // pass
+        }
     }
     
     func testPerformance() {
@@ -95,12 +143,20 @@ public final class ConnectionPoolTests: XCTestCase {
             }
         }
     }
+}
+
+private struct ErrorDatabase: ConnectionPoolSource {
+    enum Error: Swift.Error {
+        case test
+    }
     
-    public static let allTests = [
-        ("testPooling", testPooling),
-        ("testFIFOWaiters", testFIFOWaiters),
-        ("testPerformance", testPerformance),
-    ]
+    var eventLoop: EventLoop {
+        return EmbeddedEventLoop()
+    }
+    
+    func makeConnection() -> EventLoopFuture<FooConnection> {
+        return self.eventLoop.makeFailedFuture(Error.test)
+    }
 }
 
 private final class FooDatabase: ConnectionPoolSource {
@@ -124,8 +180,9 @@ private final class FooConnection: ConnectionPoolItem {
         self.isClosed = false
     }
     
-    func close() {
+    func close() -> EventLoopFuture<Void> {
         self.isClosed = true
+        return EmbeddedEventLoop().makeSucceededFuture(())
     }
 }
 
