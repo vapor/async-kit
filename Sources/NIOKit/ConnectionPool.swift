@@ -65,12 +65,12 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
     /// Creates new connections when needed. See `ConnectionPoolSource`.
     public let source: Source
     
-    /// This ConnectionPool's event loop.
+    /// This connection pool's event loop.
     public var eventLoop: EventLoop {
         return self.source.eventLoop
     }
     
-    /// If `true`, this ConnectionPool has been closed.
+    /// If `true`, this connection pool has been closed.
     public private(set) var isClosed: Bool
     
     // MARK: Private
@@ -210,7 +210,8 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
     /// Any connections currently in use will be closed when they are returned to the pool.
     ///
     /// Once closed, the connection pool cannot be used to create new connections.
-    /// Connection pools _must_ be closed before the deinitialize.
+    ///
+    /// Connection pools must be closed before they deinitialize.
     ///
     /// - returns: A future indicating close completion.
     public func close() -> EventLoopFuture<Void> {
