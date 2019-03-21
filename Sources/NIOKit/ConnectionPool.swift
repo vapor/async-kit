@@ -214,13 +214,13 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
     ///
     /// - returns: A future indicating close completion.
     public func close() -> EventLoopFuture<Void> {
+        self.isClosed = true
         return self.available.map { $0.close() }.flatten(on: self.eventLoop).map {
             while let waiter = self.waiters.popFirst() {
                 waiter.fail(ConnectionPoolError.closed)
             }
             self.available = []
             self.activeConnections = 0
-            self.isClosed = true
         }
     }
     
