@@ -102,7 +102,7 @@ public final class ConnectionPoolTests: XCTestCase {
         do {
             _ = try b.wait()
             XCTFail("should not have created connection")
-        } catch _ as ConnectionPoolError {
+        } catch ConnectionPoolError.closed {
             // pass
         }
         
@@ -110,7 +110,7 @@ public final class ConnectionPoolTests: XCTestCase {
         do {
             _ = try c.wait()
             XCTFail("should not have created connection")
-        } catch _ as ConnectionPoolError {
+        } catch ConnectionPoolError.closed {
             // pass
         }
     }
