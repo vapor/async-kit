@@ -23,7 +23,7 @@ extension EventLoopFuture where Value: Sequence {
     /// Calls a closure, which returns an `Optional`, on each element in the sequence that is wrapped by an `EventLoopFuture`.
     ///
     ///     let collection = eventLoop.future(["one", "2", "3", "4", "five", "^", "7"])
-    ///     let times2 = collection.compactMapEach { int in
+    ///     let times2 = collection.mapEachCompact { int in
     ///         return Int(int)
     ///     }
     ///     // times2: EventLoopFuture([2, 3, 4, 7])
@@ -32,7 +32,7 @@ extension EventLoopFuture where Value: Sequence {
     ///   - transform: The closure that each element in the sequence is passed into.
     ///   - element: The element from the sequence that you can operate on.
     /// - returns: A new `EventLoopFuture` that wraps that sequence of transformed elements.
-    public func compactMapEach<Result>(
+    public func mapEachCompact<Result>(
         _ transform: @escaping (_ element: Value.Element) -> Result?
     ) -> EventLoopFuture<[Result]> {
         return self.map { sequence -> [Result] in
