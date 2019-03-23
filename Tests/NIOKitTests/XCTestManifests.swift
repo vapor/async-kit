@@ -31,6 +31,7 @@ extension FutureCollectionTests {
     static let __allTests__FutureCollectionTests = [
         ("testCompactMapEach", testCompactMapEach),
         ("testFlatMapEach", testFlatMapEach),
+        ("testFlatMapEachCompact", testFlatMapEachCompact),
         ("testMapEach", testMapEach),
     ]
 }

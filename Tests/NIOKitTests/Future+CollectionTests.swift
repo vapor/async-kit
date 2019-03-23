@@ -25,6 +25,15 @@ final class FutureCollectionTests: XCTestCase {
         try XCTAssertEqual(times2.wait(), [2, 4, 6, 8, 10, 12, 14, 16, 18])
     }
     
+    func testFlatMapEachCompact() throws {
+        let collection = self.eventLoop.makeSucceededFuture(["one", "2", "3", "4", "five", "^", "7"])
+        let times2 = collection.flatMapEachCompact(on: self.eventLoop) { int -> EventLoopFuture<Int?> in
+            return self.eventLoop.makeSucceededFuture(Int(int))
+        }
+        
+        try XCTAssertEqual(times2.wait(), [2, 3, 4, 7])
+    }
+    
     /// This TestCases EventLoopGroup
     var group: EventLoopGroup!
     
