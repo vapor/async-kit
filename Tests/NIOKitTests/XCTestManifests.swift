@@ -6,8 +6,10 @@ extension ConnectionPoolTests {
     //   `swift test --generate-linuxmain`
     // to regenerate.
     static let __allTests__ConnectionPoolTests = [
+        ("testConnectError", testConnectError),
         ("testFIFOWaiters", testFIFOWaiters),
         ("testPerformance", testPerformance),
+        ("testPoolClose", testPoolClose),
         ("testPooling", testPooling),
     ]
 }
