@@ -43,7 +43,7 @@ extension EventLoopFuture where Value: Sequence {
     /// Calls a closure, which returns an `EventLoopFuture`, on each element
     /// in a sequence that is wrapped by an `EventLoopFuture`.
     ///
-    ///     let users = [User(name: "Tanner", ...), ...]
+    ///     let users = evetnLoop.future([User(name: "Tanner", ...), ...])
     ///     let saved = users.flatMapEach(on: eventLoop) { $0.save(on: database) }
     ///
     /// - parameters:
@@ -58,6 +58,32 @@ extension EventLoopFuture where Value: Sequence {
     ) -> EventLoopFuture<[Result]> {
         return self.flatMap { sequence -> EventLoopFuture<[Result]> in
             return sequence.map(transform).flatten(on: eventLoop)
+        }
+    }
+    
+    /// Calls a closure, which returns an `EventLoopFuture<Optional>`, on each element
+    /// in a sequence that is wrapped by an `EventLoopFuture`.
+    ///
+    ///     let users = eventLoop.future([User(name: "Tanner", ...), ...])
+    ///     let pets = users.flatMapEach(on: eventLoop) { $0.favoritePet(on: database) }
+    ///
+    /// - parameters:
+    ///   - eventLoop: The `EventLoop` to flatten the resulting array of futures on.
+    ///   - transform: The closure that each element in the sequence is passed into.
+    ///   - element: The element from the sequence that you can operate on.
+    /// - returns: A new `EventLoopFuture` that wrapps the non-nil results
+    ///   of all the `EventLoopFuture`s returned from the closure.
+    public func flatMapEachCompact<Result>(
+        on eventLoop: EventLoop,
+        _ transform: @escaping (_ element: Value.Element) -> EventLoopFuture<Result?>
+    ) -> EventLoopFuture<[Result]> {
+        return self.flatMap { sequence -> EventLoopFuture<[Result]> in
+            let futures = sequence.map(transform)
+            return EventLoopFuture<[Result]>.reduce(into: [], futures, on: eventLoop) { result, value in
+                if let unwrapped = value {
+                    result.append(unwrapped)
+                }
+            }
         }
     }
 }
