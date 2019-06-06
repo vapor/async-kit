@@ -1,4 +1,4 @@
-import NIOKit
+import AsyncKit
 import XCTest
 
 final class EventLoopGroupFutureTests: XCTestCase {

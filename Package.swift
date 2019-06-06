@@ -2,15 +2,15 @@
 import PackageDescription
 
 let package = Package(
-    name: "nio-kit",
+    name: "async-kit",
     products: [
-        .library(name: "NIOKit", targets: ["NIOKit"]),
+        .library(name: "AsyncKit", targets: ["AsyncKit"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.0.0"),
     ],
     targets: [
-        .target(name: "NIOKit", dependencies: ["NIO"]),
-        .testTarget(name: "NIOKitTests", dependencies: ["NIOKit"]),
+        .target(name: "AsyncKit", dependencies: ["NIO"]),
+        .testTarget(name: "AsyncKitTests", dependencies: ["AsyncKit"]),
     ]
 )

@@ -1,5 +1,5 @@
 import XCTest
-import NIOKit
+import AsyncKit
 
 final class FutureOperatorTests: XCTestCase {
     func testAddition() throws {
