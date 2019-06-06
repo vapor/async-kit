@@ -1,30 +1,55 @@
 version: 2
 
 jobs:
-  linux:
-    docker:
-      - image: vapor/swift:5.0
+  macos:
+    macos:
+      xcode: "10.2.0"
     steps:
       - checkout
       - run: swift build
       - run: swift test
-  linux-release:
-    docker:
-      - image: vapor/swift:5.0
+  macos-release:
+    macos:
+      xcode: "10.2.0"
     steps:
       - checkout
       - run: swift build -c release
-  linux-performance:
+  bionic:
     docker:
-      - image: vapor/swift:5.0
+      - image: swift:5.0-bionic
     steps:
       - checkout
-      - run: swift test -c release -Xswiftc -enable-testing
+      - run: swift build
+      - run: swift test
+  bionic-release:
+    docker:
+      - image: swift:5.0-bionic
+    steps:
+      - checkout
+      - run: swift build -c release
+  # xenial:
+  #   docker:
+  #     - image: swift:5.0-xenial
+  #   steps:
+  #     - checkout
+  #     - run: apt-get update; apt-get install -y libssl-dev zlib1g-dev
+  #     - run: swift build
+  #     - run: swift test
+  # xenial-release:
+  #   docker:
+  #     - image: swift:5.0-xenial
+  #   steps:
+  #     - checkout
+  #     - run: apt-get update; apt-get install -y libssl-dev zlib1g-dev
+  #     - run: swift build -c release
 
 workflows:
   version: 2
   tests:
     jobs:
-      - linux
-      - linux-release
-      - linux-performance
+      - macos
+      - macos-release
+      - bionic
+      - bionic-release
+      # - xenial
+      # - xenial-release
