@@ -1,5 +1,5 @@
 import XCTest
-import NIOKit
+import AsyncKit
 
 final class FutureExtensionsTests: XCTestCase {
     func testGuard() {

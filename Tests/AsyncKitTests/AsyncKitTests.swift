@@ -1,7 +1,7 @@
 import XCTest
-import NIOKit
+import AsyncKit
 
-final class NIOKitTests: XCTestCase {
+final class AsyncKitTests: XCTestCase {
     func testUniverseSanity() {
         print(self.eventLoop)
         XCTAssert(true)

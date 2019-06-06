@@ -1,8 +1,8 @@
 import XCTest
 
-import NIOKitTests
+import AsyncKitTests
 
 var tests = [XCTestCaseEntry]()
-tests += NIOKitTests.__allTests()
+tests += AsyncKitTests.__allTests()
 
 XCTMain(tests)
