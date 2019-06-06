@@ -1,3 +1,5 @@
+import struct NIO.CircularBuffer
+
 /// Source of new connections for `ConnectionPool`.
 public protocol ConnectionPoolSource {
     /// Associated `ConnectionPoolItem` that will be returned by `makeConnection()`.
