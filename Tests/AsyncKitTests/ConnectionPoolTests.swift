@@ -8,7 +8,7 @@ final class ConnectionPoolTests: XCTestCase {
         let pool = ConnectionPool(
             configuration: .init(maxConnections: 2),
             source: foo,
-            on: self.eventLoopGroup
+            on: EmbeddedEventLoop()
         )
         defer { pool.shutdown() }
         
@@ -21,7 +21,7 @@ final class ConnectionPoolTests: XCTestCase {
         
         // try to make a third, but pool only supports 2
         var connC: FooConnection?
-        pool.requestConnection(on: .any).whenSuccess { connC = $0 }
+        pool.requestConnection().whenSuccess { connC = $0 }
         XCTAssertNil(connC)
         XCTAssertEqual(foo.connectionsCreated.load(), 2)
         
