@@ -5,19 +5,23 @@ import NIOConcurrencyHelpers
 final class ConnectionPoolTests: XCTestCase {
     func testPooling() throws {
         let foo = FooDatabase()
-        let pool = ConnectionPool(configuration: .init(maxConnections: 2), source: foo)
+        let pool = ConnectionPool(
+            configuration: .init(maxConnections: 2),
+            source: foo,
+            on: self.eventLoopGroup
+        )
         defer { pool.shutdown() }
         
         // make two connections
-        let connA = try pool.requestConnection(on: EmbeddedEventLoop()).wait()
+        let connA = try pool.requestConnection().wait()
         XCTAssertEqual(connA.isClosed, false)
-        let connB = try pool.requestConnection(on: EmbeddedEventLoop()).wait()
+        let connB = try pool.requestConnection().wait()
         XCTAssertEqual(connB.isClosed, false)
         XCTAssertEqual(foo.connectionsCreated.load(), 2)
         
         // try to make a third, but pool only supports 2
         var connC: FooConnection?
-        pool.requestConnection(on: EmbeddedEventLoop()).whenSuccess { connC = $0 }
+        pool.requestConnection(on: .any).whenSuccess { connC = $0 }
         XCTAssertNil(connC)
         XCTAssertEqual(foo.connectionsCreated.load(), 2)
         
@@ -29,7 +33,7 @@ final class ConnectionPoolTests: XCTestCase {
         
         // try to make a third again, with two active
         var connD: FooConnection?
-        pool.requestConnection(on: EmbeddedEventLoop()).whenSuccess { connD = $0 }
+        pool.requestConnection(on: .any).whenSuccess { connD = $0 }
         XCTAssertNil(connD)
         XCTAssertEqual(foo.connectionsCreated.load(), 2)
         
@@ -43,18 +47,22 @@ final class ConnectionPoolTests: XCTestCase {
 
     func testFIFOWaiters() throws {
         let foo = FooDatabase()
-        let pool = ConnectionPool(configuration: .init(maxConnections: 1), source: foo)
+        let pool = ConnectionPool(
+            configuration: .init(maxConnections: 1),
+            source: foo,
+            on: self.eventLoopGroup
+        )
         defer { pool.shutdown() }
 
         // * User A makes a request for a connection, gets connection number 1.
-        let a_1 = pool.requestConnection(on: EmbeddedEventLoop())
+        let a_1 = pool.requestConnection()
         let a = try a_1.wait()
 
         // * User B makes a request for a connection, they are exhausted so he gets a promise.
-        let b_1 = pool.requestConnection(on: EmbeddedEventLoop())
+        let b_1 = pool.requestConnection()
 
         // * User A makes another request for a connection, they are still exhausted so he gets a promise.
-        let a_2 = pool.requestConnection(on: EmbeddedEventLoop())
+        let a_2 = pool.requestConnection()
 
         // * User A returns connection number 1. His previous request is fulfilled with connection number 1.
         pool.releaseConnection(a)
@@ -73,11 +81,15 @@ final class ConnectionPoolTests: XCTestCase {
 
     func testConnectError() throws {
         let db = ErrorDatabase()
-        let pool = ConnectionPool(configuration: .init(maxConnections: 1), source: db)
+        let pool = ConnectionPool(
+            configuration: .init(maxConnections: 1),
+            source: db,
+            on: self.eventLoopGroup
+        )
         defer { pool.shutdown() }
 
         do {
-            _ = try pool.requestConnection(on: EmbeddedEventLoop()).wait()
+            _ = try pool.requestConnection().wait()
             XCTFail("should not have created connection")
         } catch _ as ErrorDatabase.Error {
             // pass
@@ -85,7 +97,7 @@ final class ConnectionPoolTests: XCTestCase {
 
         // test that we can still make another request even after a failed request
         do {
-            _ = try pool.requestConnection(on: EmbeddedEventLoop()).wait()
+            _ = try pool.requestConnection().wait()
             XCTFail("should not have created connection")
         } catch _ as ErrorDatabase.Error {
             // pass
@@ -94,11 +106,15 @@ final class ConnectionPoolTests: XCTestCase {
 
     func testPoolClose() throws {
         let foo = FooDatabase()
-        let pool = ConnectionPool(configuration: .init(maxConnections: 1), source: foo)
-        let _ = try pool.requestConnection(on: EmbeddedEventLoop()).wait()
-        let b = pool.requestConnection(on: EmbeddedEventLoop())
+        let pool = ConnectionPool(
+            configuration: .init(maxConnections: 1),
+            source: foo,
+            on: self.eventLoopGroup
+        )
+        let _ = try pool.requestConnection().wait()
+        let b = pool.requestConnection()
         pool.shutdown()
-        let c = pool.requestConnection(on: EmbeddedEventLoop())
+        let c = pool.requestConnection()
 
         // check that waiters are failed
         do {
@@ -120,25 +136,29 @@ final class ConnectionPoolTests: XCTestCase {
     func testPerformance() {
         guard performance(expected: 0.088) else { return }
         let foo = FooDatabase()
-        let pool = ConnectionPool(configuration: .init(maxConnections: 10), source: foo)
+        let pool = ConnectionPool(
+            configuration: .init(maxConnections: 10),
+            source: foo,
+            on: self.eventLoopGroup
+        )
 
         measure {
             for _ in 0..<10_000 {
                 do {
-                    let connA = try! pool.requestConnection(on: EmbeddedEventLoop()).wait()
+                    let connA = try! pool.requestConnection().wait()
                     pool.releaseConnection(connA)
                 }
                 do {
-                    let connA = try! pool.requestConnection(on: EmbeddedEventLoop()).wait()
-                    let connB = try! pool.requestConnection(on: EmbeddedEventLoop()).wait()
-                    let connC = try! pool.requestConnection(on: EmbeddedEventLoop()).wait()
+                    let connA = try! pool.requestConnection().wait()
+                    let connB = try! pool.requestConnection().wait()
+                    let connC = try! pool.requestConnection().wait()
                     pool.releaseConnection(connB)
                     pool.releaseConnection(connC)
                     pool.releaseConnection(connA)
                 }
                 do {
-                    let connA = try! pool.requestConnection(on: EmbeddedEventLoop()).wait()
-                    let connB = try! pool.requestConnection(on: EmbeddedEventLoop()).wait()
+                    let connA = try! pool.requestConnection().wait()
+                    let connB = try! pool.requestConnection().wait()
                     pool.releaseConnection(connA)
                     pool.releaseConnection(connB)
                 }
@@ -148,7 +168,11 @@ final class ConnectionPoolTests: XCTestCase {
 
     func testThreadSafety() throws {
         let foo = FooDatabase()
-        let pool = ConnectionPool(configuration: .init(maxConnections: 10), source: foo)
+        let pool = ConnectionPool(
+            configuration: .init(maxConnections: 10),
+            source: foo,
+            on: self.eventLoopGroup
+        )
         defer { pool.shutdown() }
 
         var futures: [EventLoopFuture<Void>] = []
@@ -158,7 +182,7 @@ final class ConnectionPoolTests: XCTestCase {
             let promise = eventLoop.makePromise(of: Void.self)
             eventLoop.execute {
                 (0 ..< 1_000).map { i in
-                    return pool.withConnection(on: eventLoop) { conn in
+                    return pool.withConnection(on: .prefer(eventLoop)) { conn in
                         return conn.eventLoop.makeSucceededFuture(i)
                     }
                 }.flatten(on: eventLoop)
