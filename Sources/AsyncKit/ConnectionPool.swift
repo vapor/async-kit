@@ -1,6 +1,5 @@
 import struct NIO.CircularBuffer
 import class NIOConcurrencyHelpers.Lock
-import class NIOConcurrencyHelpers.Atomic
 
 /// Source of new connections for `ConnectionPool`.
 public protocol ConnectionPoolSource {
@@ -87,10 +86,10 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
 
     /// All currently available connections.
     /// - note: These connections may have closed since last use.
-    private var available: [Source.Connection]
+    private var available: CircularBuffer<Source.Connection>
     
     /// Current active connection count.
-    private var activeConnections: Atomic<Int>
+    private var activeConnections: Int
     
     /// All requests for a connection that were unable to be fulfilled
     /// due to max connection limit having been reached.
@@ -121,9 +120,8 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
         self.configuration = configuration
         self.source = source
         self.eventLoopGroup = eventLoopGroup
-        self.available = []
-        self.available.reserveCapacity(configuration.maxConnections)
-        self.activeConnections = .init(value: 0)
+        self.available = .init(initialCapacity: configuration.maxConnections)
+        self.activeConnections = 0
         self.waiters = .init(initialCapacity: 0)
         self.lock = .init()
         self.didShutdown = false
@@ -184,7 +182,7 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
             return eventLoop.makeFailedFuture(ConnectionPoolError.shutdown)
         }
 
-        if let conn = self.available.popLast() {
+        if let conn = self.available.popFirst() {
             // check if it is still open
             if !conn.isClosed {
                 // connection is still open, we can return it directly
@@ -192,19 +190,23 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
             } else {
                 // connection is closed, we need to replace it
                 return self.source.makeConnection(on: eventLoop).flatMapErrorThrowing { error in
-                    // there is one less active conn open
-                    _ = self.activeConnections.sub(1)
+                    // replacing the available connection failed
+                    self.lock.lock()
+                    defer { self.lock.unlock() }
+                    self.activeConnections -= 1
                     throw error
                 }
             }
-        } else if self.activeConnections.load() < self.configuration.maxConnections  {
+        } else if self.activeConnections < self.configuration.maxConnections  {
             // all connections are busy, but we have room to open a new connection!
-            _ = self.activeConnections.add(1)
+            self.activeConnections += 1
 
             // make the new connection
             return self.source.makeConnection(on: eventLoop).flatMapErrorThrowing { error in
-                // there is one less active conn open
-                _ = self.activeConnections.sub(1)
+                // creating a new connection failed
+                self.lock.lock()
+                defer { self.lock.unlock() }
+                self.activeConnections -= 1
                 throw error
             }
         } else {
@@ -287,6 +289,7 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
         for available in self.available {
             do {
                 try available.close().wait()
+                self.activeConnections -= 1
             } catch {
                 #warning("TODO: use logger")
                 print("Could not close connection: \(error)")
@@ -299,8 +302,7 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
         }
             
         // reset any variables to free up memory
-        self.available = []
-        self.activeConnections.store(0)
+        self.available = .init()
     }
     
     deinit {
