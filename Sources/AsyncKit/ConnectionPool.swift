@@ -1,5 +1,6 @@
 import struct NIO.CircularBuffer
 import class NIOConcurrencyHelpers.Lock
+import struct Logging.Logger
 
 /// Source of new connections for `ConnectionPool`.
 public protocol ConnectionPoolSource {
@@ -101,6 +102,9 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
     /// If `true`, this connection pool has been closed.
     private var didShutdown: Bool
     
+    /// Used for trace and debug logs.
+    private let logger: Logger
+    
     /// Creates a new `ConnectionPool`.
     ///
     ///     let pool = ConnectionPool(config: ..., source: ...)
@@ -111,14 +115,17 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
     /// - parameters:
     ///     - configuration: Config options for this pool.
     ///     - source: Creates new connections when needed.
+    ///     - logger: For trace and debug logs.
     ///     - on: Event loop source when not specified
     public init(
         configuration: ConnectionPoolConfiguration = .init(),
         source: Source,
+        logger: Logger = .init(label: "codes.vapor.pool"),
         on eventLoopGroup: EventLoopGroup
     ) {
         self.configuration = configuration
         self.source = source
+        self.logger = logger
         self.eventLoopGroup = eventLoopGroup
         self.available = .init(initialCapacity: configuration.maxConnections)
         self.activeConnections = 0
@@ -181,39 +188,39 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
         guard !self.didShutdown else {
             return eventLoop.makeFailedFuture(ConnectionPoolError.shutdown)
         }
-
-        if let conn = self.available.popFirst() {
-            // check if it is still open
-            if !conn.isClosed {
-                // connection is still open, we can return it directly
-                return eventLoop.makeSucceededFuture(conn)
-            } else {
-                // connection is closed, we need to replace it
-                return self.source.makeConnection(on: eventLoop).flatMapErrorThrowing { error in
-                    // replacing the available connection failed
-                    self.lock.lock()
-                    defer { self.lock.unlock() }
-                    self.activeConnections -= 1
-                    throw error
-                }
-            }
-        } else if self.activeConnections < self.configuration.maxConnections  {
-            // all connections are busy, but we have room to open a new connection!
-            self.activeConnections += 1
-
-            // make the new connection
+        
+        // creates a new connection assuming `activeConnections`
+        // has already been incremented
+        func makeActiveConnection() -> EventLoopFuture<Source.Connection> {
             return self.source.makeConnection(on: eventLoop).flatMapErrorThrowing { error in
-                // creating a new connection failed
                 self.lock.lock()
                 defer { self.lock.unlock() }
                 self.activeConnections -= 1
                 throw error
             }
+        }
+
+        if let conn = self.available.popFirst() {
+            // check if it is still open
+            if !conn.isClosed {
+                // connection is still open, we can return it directly
+                self.logger.trace("Re-using available connection")
+                return eventLoop.makeSucceededFuture(conn)
+            } else {
+                // connection is closed, we need to replace it
+                self.logger.debug("Replacing an active connection that has closed")
+                return makeActiveConnection()
+            }
+        } else if self.activeConnections < self.configuration.maxConnections {
+            // all connections are busy, but we have room to open a new connection!
+            self.logger.debug("All connections are busy, creating a new one")
+            self.activeConnections += 1
+            return makeActiveConnection()
         } else {
             // connections are exhausted, we must wait for one to be returned
+            self.logger.debug("Connection pool exhausted, adding request to waitlist")
             let promise = eventLoop.makePromise(of: Source.Connection.self)
             self.waiters.append(promise)
-
             // return waiter
             return promise.futureResult
         }
@@ -242,6 +249,7 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
         }
 
         // add this connection back to the list of available
+        self.logger.trace("Releasing connection")
         self.available.append(conn)
 
         // now that we know a new connection is available, we should
@@ -258,6 +266,7 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
 
         // if there is a waiter, request a connection for it
         if let waiter = waiter {
+            self.logger.debug("Fulfilling connection waitlist request")
             self.requestConnection(
                 on: .prefer(waiter.futureResult.eventLoop)
             ).cascade(to: waiter)
@@ -284,6 +293,7 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
             return
         }
         self.didShutdown = true
+        self.logger.debug("Connection pool shutting down, closing all available connections")
 
         // no locks needed as this can only happen once
         for available in self.available {
@@ -291,8 +301,7 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
                 try available.close().wait()
                 self.activeConnections -= 1
             } catch {
-                #warning("TODO: use logger")
-                print("Could not close connection: \(error)")
+                self.logger.error("Could not close connection: \(error)")
             }
         }
 
