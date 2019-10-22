@@ -43,15 +43,23 @@ public enum ConnectionPoolError: Error {
     case shutdown
 }
 
-public enum ConnectionPoolEventLoop {
-    case any
-    case prefer(EventLoop)
+/// Determines which event loop the connection pool uses while fulfilling requests.
+public enum ConnectionPoolEventLoopPreference {
+    /// The caller accepts connections and callbacks on any EventLoop.
+    case indifferent
+    
+    /// The caller accepts connections on any event loop, but must be
+    /// called back (delegated to) on the supplied EventLoop.
+    /// If possible, the connection should also be on this EventLoop for
+    /// improved performance.
+    case delegate(on: EventLoop)
 
-    func on(_ eventLoopGroup: EventLoopGroup) -> EventLoop {
+    /// Returns the delegate EventLoop given an EventLoopGroup.
+    internal func delegate(for eventLoopGroup: EventLoopGroup) -> EventLoop {
         switch self {
-        case .any:
+        case .indifferent:
             return eventLoopGroup.next()
-        case .prefer(let eventLoop):
+        case .delegate(let eventLoop):
             return eventLoop
         }
     }
@@ -139,21 +147,21 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
     /// The connection is provided to the supplied callback and will be automatically released when the
     /// future returned by the callback is completed.
     ///
-    ///     pool.withConnection(on: ...) { conn in
+    ///     pool.withConnection(...) { conn in
     ///         // use the connection
     ///     }
     ///
     /// See `requestConnection(on:)` to request a pooled connection without using a callback.
     ///
     /// - parameters:
-    ///     - on: Preferred event loop for the new connection.
+    ///     - eventLoop: Preferred event loop for the new connection.
     ///     - closure: Callback that accepts the pooled connection.
     /// - returns: A future containing the result of the closure.
     public func withConnection<Result>(
-        on eventLoop: ConnectionPoolEventLoop = .any,
+        eventLoop: ConnectionPoolEventLoopPreference = .indifferent,
         _ closure: @escaping (Source.Connection) -> EventLoopFuture<Result>
     ) -> EventLoopFuture<Result> {
-        return self.requestConnection(on: eventLoop).flatMap { conn in
+        return self.requestConnection(eventLoop: eventLoop).flatMap { conn in
             return closure(conn).map { res in
                 self.releaseConnection(conn)
                 return res
@@ -168,7 +176,7 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
     ///
     /// The connection returned by this method should be released when you are finished using it.
     ///
-    ///     let conn = try pool.requestConnection(on: ...).wait()
+    ///     let conn = try pool.requestConnection(...).wait()
     ///     defer { pool.releaseConnection(conn) }
     ///     // use the connection
     ///
@@ -178,21 +186,23 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
     ///     - on: Preferred event loop for the new connection.
     /// - returns: A future containing the requested connection.
     public func requestConnection(
-        on eventLoop: ConnectionPoolEventLoop = .any
+        eventLoop: ConnectionPoolEventLoopPreference = .indifferent
     ) -> EventLoopFuture<Source.Connection> {
         // synchronize access to available / active connection checks
         self.lock.lock()
         defer { self.lock.unlock() }
 
-        let eventLoop = eventLoop.on(self.eventLoopGroup)
         guard !self.didShutdown else {
-            return eventLoop.makeFailedFuture(ConnectionPoolError.shutdown)
+            return eventLoop.delegate(for: self.eventLoopGroup)
+                .makeFailedFuture(ConnectionPoolError.shutdown)
         }
         
         // creates a new connection assuming `activeConnections`
         // has already been incremented
         func makeActiveConnection() -> EventLoopFuture<Source.Connection> {
-            return self.source.makeConnection(on: eventLoop).flatMapErrorThrowing { error in
+            return self.source.makeConnection(
+                on: eventLoop.delegate(for: self.eventLoopGroup)
+            ).flatMapErrorThrowing { error in
                 self.lock.lock()
                 defer { self.lock.unlock() }
                 self.activeConnections -= 1
@@ -200,26 +210,31 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
             }
         }
 
-        if let conn = self.available.popFirst() {
+        // iterate over available connections
+        while let conn = self.available.popFirst() {
             // check if it is still open
             if !conn.isClosed {
                 // connection is still open, we can return it directly
                 self.logger.trace("Re-using available connection")
-                return eventLoop.makeSucceededFuture(conn)
+                return eventLoop.delegate(for: self.eventLoopGroup)
+                    .makeSucceededFuture(conn)
             } else {
-                // connection is closed, we need to replace it
-                self.logger.debug("Replacing an active connection that has closed")
-                return makeActiveConnection()
+                // connection is closed
+                self.logger.debug("Pruning available connection that has closed")
+                self.activeConnections -= 1
             }
-        } else if self.activeConnections < self.configuration.maxConnections {
-            // all connections are busy, but we have room to open a new connection!
+        }
+        
+        // all connections are busy, check if we have room for more
+        if self.activeConnections < self.configuration.maxConnections {
             self.logger.debug("All connections are busy, creating a new one")
             self.activeConnections += 1
             return makeActiveConnection()
         } else {
             // connections are exhausted, we must wait for one to be returned
             self.logger.debug("Connection pool exhausted, adding request to waitlist")
-            let promise = eventLoop.makePromise(of: Source.Connection.self)
+            let promise = eventLoop.delegate(for: self.eventLoopGroup)
+                .makePromise(of: Source.Connection.self)
             self.waiters.append(promise)
             // return waiter
             return promise.futureResult
@@ -268,7 +283,7 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
         if let waiter = waiter {
             self.logger.debug("Fulfilling connection waitlist request")
             self.requestConnection(
-                on: .prefer(waiter.futureResult.eventLoop)
+                eventLoop: .delegate(on: waiter.futureResult.eventLoop)
             ).cascade(to: waiter)
         }
     }

@@ -33,7 +33,7 @@ final class ConnectionPoolTests: XCTestCase {
         
         // try to make a third again, with two active
         var connD: FooConnection?
-        pool.requestConnection(on: .any).whenSuccess { connD = $0 }
+        pool.requestConnection().whenSuccess { connD = $0 }
         XCTAssertNil(connD)
         XCTAssertEqual(foo.connectionsCreated.load(), 2)
         
@@ -182,7 +182,7 @@ final class ConnectionPoolTests: XCTestCase {
             let promise = eventLoop.makePromise(of: Void.self)
             eventLoop.execute {
                 (0 ..< 1_000).map { i in
-                    return pool.withConnection(on: .prefer(eventLoop)) { conn in
+                    return pool.withConnection(eventLoop: .delegate(on: eventLoop)) { conn in
                         return conn.eventLoop.makeSucceededFuture(i)
                     }
                 }.flatten(on: eventLoop)
