@@ -1,6 +1,7 @@
 import AsyncKit
 import XCTest
 import NIOConcurrencyHelpers
+import Logging
 
 final class ConnectionPoolTests: XCTestCase {
     func testPooling() throws {
@@ -193,6 +194,33 @@ final class ConnectionPoolTests: XCTestCase {
         }
 
         try futures.flatten(on: eventLoopGroup.next()).wait()
+    }
+    
+    func testEventLoopDelegation() throws {
+        let foo = FooDatabase()
+        let pool = ConnectionPool(
+            configuration: .init(maxConnections: 1),
+            source: foo,
+            on: self.eventLoopGroup
+        )
+        defer { pool.shutdown() }
+        
+        for _ in 0..<500 {
+            let eventLoop = self.eventLoopGroup.next()
+            let a = pool.requestConnection(
+                eventLoop: .delegate(on: eventLoop)
+            ).map { conn in
+                XCTAssertTrue(eventLoop.inEventLoop)
+                pool.releaseConnection(conn)
+            }
+            let b = pool.requestConnection(
+                eventLoop: .delegate(on: eventLoop)
+            ).map { conn in
+                XCTAssertTrue(eventLoop.inEventLoop)
+                pool.releaseConnection(conn)
+            }
+            _ = try a.and(b).wait()
+        }
     }
 
     var eventLoopGroup: EventLoopGroup!

@@ -227,7 +227,7 @@ public final class ConnectionPool<Source> where Source: ConnectionPoolSource  {
         
         // all connections are busy, check if we have room for more
         if self.activeConnections < self.configuration.maxConnections {
-            self.logger.debug("All connections are busy, creating a new one")
+            self.logger.debug("No available connections, creating a new one")
             self.activeConnections += 1
             return makeActiveConnection()
         } else {
