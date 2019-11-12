@@ -51,7 +51,7 @@ final class ConnectionPoolTests: XCTestCase {
         let pool = EventLoopConnectionPool(
             source: foo,
             maxConnections: 1,
-            on: self.eventLoopGroup.next()
+            on: EmbeddedEventLoop()
         )
         defer { pool.shutdown() }
 
@@ -82,10 +82,10 @@ final class ConnectionPoolTests: XCTestCase {
 
     func testConnectError() throws {
         let db = ErrorDatabase()
-        let pool = EventLoopGroupConnectionPool(
+        let pool = EventLoopConnectionPool(
             source: db,
-            maxConnectionsPerEventLoop: 1,
-            on: self.eventLoopGroup
+            maxConnections: 1,
+            on: EmbeddedEventLoop()
         )
         defer { pool.shutdown() }
 
