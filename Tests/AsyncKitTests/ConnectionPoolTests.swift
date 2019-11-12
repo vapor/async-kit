@@ -6,9 +6,9 @@ import Logging
 final class ConnectionPoolTests: XCTestCase {
     func testPooling() throws {
         let foo = FooDatabase()
-        let pool = ConnectionPool(
-            configuration: .init(maxConnections: 2),
+        let pool = EventLoopConnectionPool(
             source: foo,
+            maxConnections: 2,
             on: EmbeddedEventLoop()
         )
         defer { pool.shutdown() }
@@ -48,10 +48,10 @@ final class ConnectionPoolTests: XCTestCase {
 
     func testFIFOWaiters() throws {
         let foo = FooDatabase()
-        let pool = ConnectionPool(
-            configuration: .init(maxConnections: 1),
+        let pool = EventLoopConnectionPool(
             source: foo,
-            on: self.eventLoopGroup
+            maxConnections: 1,
+            on: self.eventLoopGroup.next()
         )
         defer { pool.shutdown() }
 
@@ -82,9 +82,9 @@ final class ConnectionPoolTests: XCTestCase {
 
     func testConnectError() throws {
         let db = ErrorDatabase()
-        let pool = ConnectionPool(
-            configuration: .init(maxConnections: 1),
+        let pool = EventLoopGroupConnectionPool(
             source: db,
+            maxConnectionsPerEventLoop: 1,
             on: self.eventLoopGroup
         )
         defer { pool.shutdown() }
@@ -107,10 +107,10 @@ final class ConnectionPoolTests: XCTestCase {
 
     func testPoolClose() throws {
         let foo = FooDatabase()
-        let pool = ConnectionPool(
-            configuration: .init(maxConnections: 1),
+        let pool = EventLoopConnectionPool(
             source: foo,
-            on: self.eventLoopGroup
+            maxConnections: 1,
+            on: self.eventLoopGroup.next()
         )
         let _ = try pool.requestConnection().wait()
         let b = pool.requestConnection()
@@ -137,10 +137,10 @@ final class ConnectionPoolTests: XCTestCase {
     func testPerformance() {
         guard performance(expected: 0.088) else { return }
         let foo = FooDatabase()
-        let pool = ConnectionPool(
-            configuration: .init(maxConnections: 10),
+        let pool = EventLoopConnectionPool(
             source: foo,
-            on: self.eventLoopGroup
+            maxConnections: 2,
+            on: self.eventLoopGroup.next()
         )
 
         measure {
@@ -169,9 +169,9 @@ final class ConnectionPoolTests: XCTestCase {
 
     func testThreadSafety() throws {
         let foo = FooDatabase()
-        let pool = ConnectionPool(
-            configuration: .init(maxConnections: 10),
+        let pool = EventLoopGroupConnectionPool(
             source: foo,
+            maxConnectionsPerEventLoop: 2,
             on: self.eventLoopGroup
         )
         defer { pool.shutdown() }
@@ -183,7 +183,7 @@ final class ConnectionPoolTests: XCTestCase {
             let promise = eventLoop.makePromise(of: Void.self)
             eventLoop.execute {
                 (0 ..< 1_000).map { i in
-                    return pool.withConnection(eventLoop: .delegate(on: eventLoop)) { conn in
+                    return pool.withConnection(on: eventLoop) { conn in
                         return conn.eventLoop.makeSucceededFuture(i)
                     }
                 }.flatten(on: eventLoop)
@@ -198,9 +198,9 @@ final class ConnectionPoolTests: XCTestCase {
     
     func testEventLoopDelegation() throws {
         let foo = FooDatabase()
-        let pool = ConnectionPool(
-            configuration: .init(maxConnections: 1),
+        let pool = EventLoopGroupConnectionPool(
             source: foo,
+            maxConnectionsPerEventLoop: 1,
             on: self.eventLoopGroup
         )
         defer { pool.shutdown() }
@@ -208,13 +208,13 @@ final class ConnectionPoolTests: XCTestCase {
         for _ in 0..<500 {
             let eventLoop = self.eventLoopGroup.next()
             let a = pool.requestConnection(
-                eventLoop: .delegate(on: eventLoop)
+                on: eventLoop
             ).map { conn in
                 XCTAssertTrue(eventLoop.inEventLoop)
                 pool.releaseConnection(conn)
             }
             let b = pool.requestConnection(
-                eventLoop: .delegate(on: eventLoop)
+                on: eventLoop
             ).map { conn in
                 XCTAssertTrue(eventLoop.inEventLoop)
                 pool.releaseConnection(conn)
@@ -239,7 +239,7 @@ private struct ErrorDatabase: ConnectionPoolSource {
         case test
     }
     
-    func makeConnection(on eventLoop: EventLoop) -> EventLoopFuture<FooConnection> {
+    func makeConnection(logger: Logger, on eventLoop: EventLoop) -> EventLoopFuture<FooConnection> {
         return eventLoop.makeFailedFuture(Error.test)
     }
 }
@@ -251,7 +251,7 @@ private final class FooDatabase: ConnectionPoolSource {
         self.connectionsCreated = .init(value: 0)
     }
     
-    func makeConnection(on eventLoop: EventLoop) -> EventLoopFuture<FooConnection> {
+    func makeConnection(logger: Logger, on eventLoop: EventLoop) -> EventLoopFuture<FooConnection> {
         let conn = FooConnection(on: eventLoop)
         _ = self.connectionsCreated.add(1)
         return conn.eventLoop.makeSucceededFuture(conn)
