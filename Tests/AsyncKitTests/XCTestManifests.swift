@@ -16,10 +16,12 @@ extension ConnectionPoolTests {
     // to regenerate.
     static let __allTests__ConnectionPoolTests = [
         ("testConnectError", testConnectError),
+        ("testEventLoopDelegation", testEventLoopDelegation),
         ("testFIFOWaiters", testFIFOWaiters),
         ("testPerformance", testPerformance),
         ("testPoolClose", testPoolClose),
         ("testPooling", testPooling),
+        ("testThreadSafety", testThreadSafety),
     ]
 }
 
