@@ -39,7 +39,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
     private var didShutdown: Bool
     
     /// Actual connection pool storage.
-    private var storage: [EventLoop.Key: EventLoopConnectionPool<Source>]
+    private let storage: [EventLoop.Key: EventLoopConnectionPool<Source>]
     
     /// Creates a new `EventLoopGroupConnectionPool`.
     ///
@@ -65,17 +65,18 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
         self.logger = logger
         self.lock = .init()
         self.eventLoopGroup = eventLoopGroup
-        self.storage = .init()
         self.didShutdown = false
         // setup pool storage
+        var storage: [EventLoop.Key: EventLoopConnectionPool<Source>] = [:]
         for eventLoop in self.eventLoopGroup.makeIterator() {
-            self.storage[eventLoop.key] = .init(
+            storage[eventLoop.key] = .init(
                 source: source,
                 maxConnections: maxConnectionsPerEventLoop,
                 logger: self.logger,
                 on: eventLoop
             )
         }
+        self.storage = storage
     }
     
     /// Fetches a pooled connection for the lifetime of the closure.
@@ -174,6 +175,10 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
     }
     
     deinit {
+        // synchronize access to didShutdown
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        
         if !self.didShutdown {
             assertionFailure("ConnectionPool.shutdown() was not called before deinit.")
         }
