@@ -11,7 +11,7 @@ final class ConnectionPoolTests: XCTestCase {
             maxConnections: 2,
             on: EmbeddedEventLoop()
         )
-        defer { pool.shutdown() }
+        defer { try! pool.close().wait() }
         
         // make two connections
         let connA = try pool.requestConnection().wait()
@@ -53,7 +53,7 @@ final class ConnectionPoolTests: XCTestCase {
             maxConnections: 1,
             on: EmbeddedEventLoop()
         )
-        defer { pool.shutdown() }
+        defer { try! pool.close().wait() }
 
         // * User A makes a request for a connection, gets connection number 1.
         let a_1 = pool.requestConnection()
@@ -87,7 +87,7 @@ final class ConnectionPoolTests: XCTestCase {
             maxConnections: 1,
             on: EmbeddedEventLoop()
         )
-        defer { pool.shutdown() }
+        defer { try! pool.close().wait() }
 
         do {
             _ = try pool.requestConnection().wait()
@@ -114,7 +114,8 @@ final class ConnectionPoolTests: XCTestCase {
         )
         let _ = try pool.requestConnection().wait()
         let b = pool.requestConnection()
-        pool.shutdown()
+        try pool.close().wait()
+        
         let c = pool.requestConnection()
 
         // check that waiters are failed

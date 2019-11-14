@@ -162,7 +162,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
         
         // synchronize access to available / active connection checks
         guard !self.didShutdown else {
-            return eventLoop.makeFailedFuture(ConnectionPoolError.shutdown)
+            return self.eventLoop.makeFailedFuture(ConnectionPoolError.shutdown)
         }
         
         // creates a new connection assuming `activeConnections`
@@ -227,7 +227,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     public func releaseConnection(_ connection: Source.Connection, logger: Logger) {
         // dispatch to event loop thread if necessary
         guard self.eventLoop.inEventLoop else {
-            return connection.eventLoop.execute {
+            return self.eventLoop.execute {
                 self.releaseConnection(connection, logger: logger)
             }
         }
@@ -270,31 +270,34 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     /// Once closed, the connection pool cannot be used to create new connections.
     ///
     /// Connection pools must be closed before they deinitialize.
-    public func shutdown() {
+    public func close() -> EventLoopFuture<Void> {
+        // dispatch to event loop thread if necessary
+        guard self.eventLoop.inEventLoop else {
+            return self.eventLoop.flatSubmit {
+                return self.close()
+            }
+        }
+        
         // check to make sure we aren't double closing
         guard !self.didShutdown else {
-            return
+            return self.eventLoop.makeSucceededFuture(())
         }
         self.didShutdown = true
         self.logger.debug("Connection pool storage shutting down, closing all available connections on this event loop")
 
         // no locks needed as this can only happen once
-        for available in self.available {
-            do {
-                try available.close().wait()
+        return self.available.map {
+            $0.close().map {
                 self.activeConnections -= 1
-            } catch {
-                self.logger.error("Could not close connection: \(error)")
             }
+        }.flatten(on: self.eventLoop).map {
+            // inform any waiters that they will never be receiving a connection
+            while let (_, promise) = self.waiters.popFirst() {
+                promise.fail(ConnectionPoolError.shutdown)
+            }
+            // reset any variables to free up memory
+            self.available = .init()
         }
-
-        // inform any waiters that they will never be receiving a connection
-        while let (_, promise) = self.waiters.popFirst() {
-            promise.fail(ConnectionPoolError.shutdown)
-        }
-            
-        // reset any variables to free up memory
-        self.available = .init()
     }
     
     deinit {

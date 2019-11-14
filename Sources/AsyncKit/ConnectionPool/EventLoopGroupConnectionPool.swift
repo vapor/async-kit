@@ -170,7 +170,11 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
 
         // shutdown all pools
         for pool in self.storage.values {
-            pool.shutdown()
+            do {
+                try pool.close().wait()
+            } catch {
+                self.logger.error("Failed shutting down event loop pool: \(error)")
+            }
         }
     }
     
