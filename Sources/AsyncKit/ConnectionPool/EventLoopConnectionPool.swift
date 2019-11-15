@@ -25,7 +25,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     private let maxConnections: Int
     
     /// This pool's event loop.
-    private let eventLoop: EventLoop
+    public let eventLoop: EventLoop
     
     /// All currently available connections.
     /// - note: These connections may have closed since last use.
