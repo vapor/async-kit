@@ -40,7 +40,12 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
     
     /// Actual connection pool storage.
     private let storage: [EventLoop.Key: EventLoopConnectionPool<Source>]
-    
+
+    /// Allows get-only access to public `Source` properties.
+    public var sourceInfo: SourceInformation<Source> {
+        return SourceInformation(source: self.source)
+    }
+
     /// Creates a new `EventLoopGroupConnectionPool`.
     ///
     ///     let pool = EventLoopGroupConnectionPool(...)

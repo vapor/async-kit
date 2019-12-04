@@ -43,7 +43,12 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     
     /// For lifecycle logs.
     private let logger: Logger
-    
+
+    /// Allows get-only access to public `Source` properties.
+    public var sourceInfo: SourceInformation<Source> {
+        return SourceInformation(source: self.source)
+    }
+
     /// Creates a new `EventLoopConnectionPool`.
     ///
     ///     let pool = EventLoopConnectionPool(...)
