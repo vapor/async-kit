@@ -288,7 +288,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
             return self.eventLoop.makeSucceededFuture(())
         }
         self.didShutdown = true
-        self.logger.debug("Connection pool storage shutting down, closing all available connections on this event loop")
+        self.logger.trace("Connection pool storage shutting down, closing all available connections on this event loop")
 
         // no locks needed as this can only happen once
         return self.available.map {
