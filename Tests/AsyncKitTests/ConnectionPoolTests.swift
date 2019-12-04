@@ -224,34 +224,6 @@ final class ConnectionPoolTests: XCTestCase {
         }
     }
 
-    func testSourceInfo() throws {
-        let foo = FooDatabase()
-
-        let elgPool = EventLoopGroupConnectionPool(
-            source: foo,
-            maxConnectionsPerEventLoop: 1,
-            on: self.eventLoopGroup
-        )
-        defer { elgPool.shutdown() }
-
-        let elPool = EventLoopConnectionPool(
-            source: foo,
-            maxConnections: 2,
-            on: self.eventLoopGroup.next()
-        )
-        defer {
-            elPool.close().whenComplete { result in
-                switch result {
-                case let .failure(error): XCTFail(error.localizedDescription)
-                case .success: break
-                }
-            }
-        }
-
-        XCTAssertEqual(elgPool.sourceInfo.connectionsCreated.load(), 0)
-        XCTAssertEqual(elPool.sourceInfo.connectionsCreated.load(), 0)
-    }
-
     var eventLoopGroup: EventLoopGroup!
 
     override func setUp() {

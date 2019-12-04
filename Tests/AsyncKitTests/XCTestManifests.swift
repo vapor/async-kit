@@ -21,7 +21,6 @@ extension ConnectionPoolTests {
         ("testPerformance", testPerformance),
         ("testPoolClose", testPoolClose),
         ("testPooling", testPooling),
-        ("testSourceInfo", testSourceInfo),
         ("testThreadSafety", testThreadSafety),
     ]
 }
