@@ -19,7 +19,7 @@ import struct Logging.Logger
 ///
 public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolSource {
     /// Connection source.
-    private let source: Source
+    public let source: Source
     
     /// Max connections for this storage.
     private let maxConnections: Int
@@ -43,7 +43,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     
     /// For lifecycle logs.
     private let logger: Logger
-    
+
     /// Creates a new `EventLoopConnectionPool`.
     ///
     ///     let pool = EventLoopConnectionPool(...)

@@ -40,7 +40,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
     
     /// Actual connection pool storage.
     private let storage: [EventLoop.Key: EventLoopConnectionPool<Source>]
-    
+
     /// Creates a new `EventLoopGroupConnectionPool`.
     ///
     ///     let pool = EventLoopGroupConnectionPool(...)
