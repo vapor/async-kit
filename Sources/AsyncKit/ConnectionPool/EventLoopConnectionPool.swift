@@ -42,7 +42,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     private var didShutdown: Bool
     
     /// For lifecycle logs.
-    private let logger: Logger
+    public let logger: Logger
 
     /// Creates a new `EventLoopConnectionPool`.
     ///
