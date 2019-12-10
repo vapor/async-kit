@@ -140,7 +140,7 @@ final class ConnectionPoolTests: XCTestCase {
         let foo = FooDatabase()
         let pool = EventLoopConnectionPool(
             source: foo,
-            maxConnections: 2,
+            maxConnections: 3,
             on: self.eventLoopGroup.next()
         )
 
