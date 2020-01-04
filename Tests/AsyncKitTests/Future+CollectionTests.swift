@@ -34,6 +34,31 @@ final class FutureCollectionTests: XCTestCase {
         try XCTAssertEqual(times2.wait(), [2, 3, 4, 7])
     }
     
+    func testFlatMapEachThrowing() throws {
+        struct SillyRangeError: Error {}
+        let collection = eventLoop.makeSucceededFuture([1, 2, 3, 4, 5, 6, 7, 8, 9])
+        let times2 = collection.flatMapEachThrowing { int -> Int in
+            guard int < 8 else { throw SillyRangeError() }
+            return int * 2
+        }
+        
+        XCTAssertThrowsError(try times2.wait())
+    }
+    
+    func testFlatMapEachCompactThrowing() throws {
+        struct SillyRangeError: Error {}
+        let collection = self.eventLoop.makeSucceededFuture(["one", "2", "3", "4", "five", "^", "7"])
+        let times2 = collection.flatMapEachCompactThrowing { str -> Int? in Int(str) }
+        let times2Badly = collection.flatMapEachCompactThrowing { str -> Int? in
+            guard let result = Int(str) else { return nil }
+            guard result < 4 else { throw SillyRangeError() }
+            return result
+        }
+        
+        try XCTAssertEqual(times2.wait(), [2, 3, 4, 7])
+        XCTAssertThrowsError(try times2Badly.wait())
+    }
+
     /// This TestCases EventLoopGroup
     var group: EventLoopGroup!
     
