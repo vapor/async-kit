@@ -86,4 +86,48 @@ extension EventLoopFuture where Value: Sequence {
             }
         }
     }
+
+    /// Calls a closure on each element in the sequence that is wrapped by an `EventLoopFuture`.
+    ///
+    ///     let collection = eventLoop.future([1, 2, 3, 4, 5, 6, 7, 8, 9])
+    ///     let times2 = collection.flatMapEachThrowing { int in
+    ///         guard int < 10 else { throw RangeError.oops }
+    ///         return int * 2
+    ///     }
+    ///     // times2: EventLoopFuture([2, 4, 6, 8, 10, 12, 14, 16, 18])
+    ///
+    /// If your callback function throws, the returned `EventLoopFuture` will error.
+    ///
+    /// - parameters:
+    ///   - transform: The closure that each element in the sequence is passed into.
+    ///   - element: The element from the sequence that you can operate on.
+    /// - returns: A new `EventLoopFuture` that wraps that sequence of transformed elements.
+    public func flatMapEachThrowing<Result>(_ transform: @escaping (_ element: Value.Element) throws -> Result) -> EventLoopFuture<[Result]> {
+        return self.flatMapThrowing { sequence -> [Result] in
+            return try sequence.map(transform)
+        }
+    }
+
+    /// Calls a closure, which returns an `Optional`, on each element in the sequence that is wrapped by an `EventLoopFuture`.
+    ///
+    ///     let collection = eventLoop.future(["one", "2", "3", "4", "five", "^", "7"])
+    ///     let times2 = collection.mapEachCompact { int in
+    ///         return Int(int)
+    ///     }
+    ///     // times2: EventLoopFuture([2, 3, 4, 7])
+    ///
+    /// If your callback function throws, the returned `EventLoopFuture` will error.
+    ///
+    /// - parameters:
+    ///   - transform: The closure that each element in the sequence is passed into.
+    ///   - element: The element from the sequence that you can operate on.
+    /// - returns: A new `EventLoopFuture` that wraps that sequence of transformed elements.
+    public func flatMapEachCompactThrowing<Result>(
+        _ transform: @escaping (_ element: Value.Element) throws -> Result?
+    ) -> EventLoopFuture<[Result]> {
+        return self.flatMapThrowing { sequence -> [Result] in
+            return try sequence.compactMap(transform)
+        }
+    }
+    
 }
