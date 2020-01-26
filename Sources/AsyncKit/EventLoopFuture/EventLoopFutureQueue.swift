@@ -4,7 +4,7 @@ import NIO
 public final class EventLoopFutureQueue {
 
     /// Under what conditions an appended closure should be run.
-    public enum Continue {
+    public enum ContinueCondition {
 
         /// Run closure on the previous future's success.
         case success
@@ -53,7 +53,7 @@ public final class EventLoopFutureQueue {
     ///     The default value is `.complete`.
     public func append<Value>(
         generator: @escaping () -> EventLoopFuture<Value>,
-        runningOn next: Continue = .complete
+        runningOn next: ContinueCondition = .complete
     ) -> EventLoopFuture<Value> {
         let promise = self.eventLoop.makePromise(of: Void.self)
 
@@ -92,7 +92,7 @@ public final class EventLoopFutureQueue {
     ///     The default value is `.complete`.
     public func append<Value>(
         _ generator: @autoclosure @escaping () -> EventLoopFuture<Value>,
-        runningOn next: Continue = .complete
+        runningOn next: ContinueCondition = .complete
     ) -> EventLoopFuture<Value> {
         self.append(generator: generator, runningOn: next)
     }
