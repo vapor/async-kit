@@ -98,6 +98,6 @@ public final class EventLoopFutureQueue {
         _ generator: @autoclosure @escaping () -> EventLoopFuture<Value>,
         runningOn next: ContinueCondition = .complete
     ) -> EventLoopFuture<Value> {
-        self.append(generator: generator, runningOn: next)
+        self.append(onPrevious: next, generator: generator)
     }
 }
