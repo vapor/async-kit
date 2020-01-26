@@ -31,6 +31,8 @@ extension EventLoopFutureQueueTests {
     // to regenerate.
     static let __allTests__EventLoopFutureQueueTests = [
         ("testAutoclosure", testAutoclosure),
+        ("testContinueOnFail", testContinueOnFail),
+        ("testContinueOnSucceed", testContinueOnSucceed),
         ("testQueue", testQueue),
     ]
 }
