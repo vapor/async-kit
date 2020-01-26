@@ -50,7 +50,7 @@ final class EventLoopFutureQueueTests: XCTestCase {
         XCTAssertEqual(numbers, [1, 2, 3, 4, 5])
     }
 
-    func testAutclosure() throws {
+    func testAutoclosure() throws {
         let queue = EventLoopFutureQueue(eventLoop: self.eventLoop)
         var numbers: [Int] = []
         let lock = Lock()

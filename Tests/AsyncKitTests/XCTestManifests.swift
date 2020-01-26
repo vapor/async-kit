@@ -30,7 +30,7 @@ extension EventLoopFutureQueueTests {
     //   `swift test --generate-linuxmain`
     // to regenerate.
     static let __allTests__EventLoopFutureQueueTests = [
-        ("testAutclosure", testAutclosure),
+        ("testAutoclosure", testAutoclosure),
         ("testQueue", testQueue),
     ]
 }
