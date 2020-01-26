@@ -51,6 +51,8 @@ public final class EventLoopFutureQueue {
     ///     future starts running right away and the queuing doesn't do you any good.
     ///   - next: The condition that the previous future(s) must meet on thier completion.
     ///     The default value is `.complete`.
+    ///
+    /// - Returns: The resulting future from the `generator` closure passed in.
     public func append<Value>(
         generator: @escaping () -> EventLoopFuture<Value>,
         runningOn next: ContinueCondition = .complete
@@ -90,6 +92,8 @@ public final class EventLoopFutureQueue {
     ///     This will automatically get wrapped in a closure.
     ///   - next: The condition that the previous future(s) must meet on thier completion.
     ///     The default value is `.complete`.
+    ///
+    /// - Returns: The future passed into the `generator` parameter.
     public func append<Value>(
         _ generator: @autoclosure @escaping () -> EventLoopFuture<Value>,
         runningOn next: ContinueCondition = .complete
