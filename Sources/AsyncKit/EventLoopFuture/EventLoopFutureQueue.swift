@@ -47,15 +47,15 @@ public final class EventLoopFutureQueue {
     ///     let model: EventLoopFuture<Model> = queue.append(generator: { Model.query(on: database).first() })
     ///
     /// - Parameters:
+    ///   - next: The condition that the previous future(s) must meet on thier completion for the appended future to be run.
+    ///     The default value is `.complete`.
     ///   - generator: The closure that produces the `EventLoopFuture`. We need a closure because otherwise the
     ///     future starts running right away and the queuing doesn't do you any good.
-    ///   - next: The condition that the previous future(s) must meet on thier completion.
-    ///     The default value is `.complete`.
     ///
     /// - Returns: The resulting future from the `generator` closure passed in.
     public func append<Value>(
-        generator: @escaping () -> EventLoopFuture<Value>,
-        runningOn next: ContinueCondition = .complete
+        onPrevious next: ContinueCondition = .complete,
+        generator: @escaping () -> EventLoopFuture<Value>
     ) -> EventLoopFuture<Value> {
         let promise = self.eventLoop.makePromise(of: Void.self)
 
@@ -90,7 +90,7 @@ public final class EventLoopFutureQueue {
     /// - Parameters:
     ///   - generator: The statement that will produce an `EventLoopFuture`.
     ///     This will automatically get wrapped in a closure.
-    ///   - next: The condition that the previous future(s) must meet on thier completion.
+    ///   - next: The condition that the previous future(s) must meet on their completion for the appended future to be run.
     ///     The default value is `.complete`.
     ///
     /// - Returns: The future passed into the `generator` parameter.
