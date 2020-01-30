@@ -121,6 +121,27 @@ final class EventLoopFutureQueueTests: XCTestCase {
             }
         }
     }
+    
+    func testSimpleSequence() throws {
+        let queue = EventLoopFutureQueue(eventLoop: self.eventLoop)
+        let values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        
+        let all = queue.append(each: values) { self.eventLoop.slowFuture($0, sleeping: 1) }
+        
+        try XCTAssertNoThrow(queue.future.wait())
+        try XCTAssertEqual(all.wait(), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+    }
+    
+    func testVoidReturnSequence() throws {
+        let queue = EventLoopFutureQueue(eventLoop: self.eventLoop)
+        let values = 99..<135
+        var output: [Int] = []
+        let all = queue.append(each: values) { v in self.eventLoop.slowFuture((), sleeping: 0).map { output.append(v) } }
+
+        try XCTAssertNoThrow(queue.future.wait())
+        try XCTAssertNoThrow(all.wait())
+        XCTAssertEqual(Array(values), output)
+    }
 
 
     /// This TestCases EventLoopGroup
