@@ -30,6 +30,8 @@ extension EventLoopFutureQueue {
         }
     }
     
+    /// Same as `append(each:_:)` above, but assumes all futures return `Void`
+    /// and returns a `Void` future instead of a result array.
     public func append<S: Sequence>(each seq: S, _ generator: @escaping (S.Element) -> EventLoopFuture<Void>) -> EventLoopFuture<Void> {
         return seq.reduce(self.append(self.eventLoop.future())) { self.append(generator($1)) }
     }
