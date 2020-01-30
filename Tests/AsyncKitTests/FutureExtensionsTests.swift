@@ -12,6 +12,16 @@ final class FutureExtensionsTests: XCTestCase {
         XCTAssertThrowsError(try guardedFuture2.wait())
     }
     
+    func testTryThrowing() {
+        let future1: EventLoopFuture<String> = eventLoop.tryFuture { return "Hello" }
+        let future2: EventLoopFuture<String> = eventLoop.tryFuture { throw TestError.notEqualTo1 }
+        var value: String = ""
+        
+        try XCTAssertNoThrow(value = future1.wait())
+        XCTAssertEqual(value, "Hello")
+        try XCTAssertThrowsError(future2.wait())
+    }
+    
     /// This TestCases EventLoopGroup
     var group: EventLoopGroup!
     
