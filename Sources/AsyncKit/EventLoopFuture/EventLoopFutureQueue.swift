@@ -57,30 +57,32 @@ public final class EventLoopFutureQueue {
         onPrevious next: ContinueCondition = .complete,
         generator: @escaping () -> EventLoopFuture<Value>
     ) -> EventLoopFuture<Value> {
-        let promise = self.eventLoop.makePromise(of: Void.self)
+        return self.eventLoop.flatSubmit {
+            let promise = self.eventLoop.makePromise(of: Void.self)
 
-        switch next {
-        case .success:
-            self.current.whenComplete { result in
-                switch result {
-                case .success: promise.succeed(())
-                case let .failure(error): promise.fail(ContinueError.previousError(error))
+            switch next {
+            case .success:
+                self.current.whenComplete { result in
+                    switch result {
+                    case .success: promise.succeed(())
+                    case let .failure(error): promise.fail(ContinueError.previousError(error))
+                    }
                 }
-            }
-        case .failure:
-            self.current.whenComplete { result in
-                switch result {
-                case .success: promise.fail(ContinueError.previousSuccess)
-                case .failure: promise.succeed(())
+            case .failure:
+                self.current.whenComplete { result in
+                    switch result {
+                    case .success: promise.fail(ContinueError.previousSuccess)
+                    case .failure: promise.succeed(())
+                    }
                 }
+            case .complete:
+                self.current.whenComplete { _ in promise.succeed(()) }
             }
-        case .complete:
-            self.current.whenComplete { _ in promise.succeed(()) }
+
+            let next = promise.futureResult.flatMap { generator() }
+            self.current = next.map { _ in () }
+            return next
         }
-
-        let next = promise.futureResult.flatMap { generator() }
-        self.current = next.map { _ in () }
-        return next
     }
 
     /// An overload for `append(generator:runningOn:)` that takes in an `EventLoopFuture` as an auto closure to provide a better 1-liner API.
