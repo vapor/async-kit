@@ -246,10 +246,10 @@ private struct ErrorDatabase: ConnectionPoolSource {
 }
 
 private final class FooDatabase: ConnectionPoolSource {
-    var connectionsCreated: Atomic<Int>
+    var connectionsCreated: NIOAtomic<Int>
 
     init() {
-        self.connectionsCreated = .init(value: 0)
+        self.connectionsCreated = .makeAtomic(value: 0)
     }
     
     func makeConnection(logger: Logger, on eventLoop: EventLoop) -> EventLoopFuture<FooConnection> {

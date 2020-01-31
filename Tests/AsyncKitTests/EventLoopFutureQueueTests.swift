@@ -39,8 +39,6 @@ final class EventLoopFutureQueueTests: XCTestCase {
             }
         })
 
-        try XCTAssertNoThrow(queue.future.wait())
-
         try XCTAssertEqual(one.wait(), 1)
         try XCTAssertEqual(two.wait(), 2)
         try XCTAssertEqual(three.wait(), 3)
@@ -60,8 +58,6 @@ final class EventLoopFutureQueueTests: XCTestCase {
         let three = queue.append(self.eventLoop.slowFuture(3, sleeping: 0).map { num in lock.withLockVoid { numbers.append(num) } })
         let four = queue.append(self.eventLoop.slowFuture(4, sleeping: 4).map { num in lock.withLockVoid { numbers.append(num) } })
         let five = queue.append(self.eventLoop.slowFuture(5, sleeping: 1).map { num in lock.withLockVoid { numbers.append(num) } })
-
-        try XCTAssertNoThrow(queue.future.wait())
 
         try XCTAssertNoThrow(one.wait())
         try XCTAssertNoThrow(two.wait())
@@ -127,8 +123,7 @@ final class EventLoopFutureQueueTests: XCTestCase {
         let values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         
         let all = queue.append(each: values) { self.eventLoop.slowFuture($0, sleeping: 1) }
-        
-        try XCTAssertNoThrow(queue.future.wait())
+
         try XCTAssertEqual(all.wait(), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
     }
     
@@ -138,7 +133,6 @@ final class EventLoopFutureQueueTests: XCTestCase {
         var output: [Int] = []
         let all = queue.append(each: values) { v in self.eventLoop.slowFuture((), sleeping: 0).map { output.append(v) } }
 
-        try XCTAssertNoThrow(queue.future.wait())
         try XCTAssertNoThrow(all.wait())
         XCTAssertEqual(Array(values), output)
     }
