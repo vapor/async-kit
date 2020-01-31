@@ -29,9 +29,6 @@ public final class EventLoopFutureQueue {
     /// The event loop that all the futures's completions are handled on.
     public let eventLoop: EventLoop
 
-    /// The final result of all the futures that have been run up to the current point.
-    public var future: EventLoopFuture<Void> { self.current }
-
     private var current: EventLoopFuture<Void>
 
     /// Create a new `EventLoopFutureQueue` on a given event loop.
