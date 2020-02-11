@@ -34,6 +34,10 @@ extension EventLoopFutureQueueTests {
         ("testContinueOnFail", testContinueOnFail),
         ("testContinueOnSucceed", testContinueOnSucceed),
         ("testQueue", testQueue),
+        ("testSequenceWithFailure", testSequenceWithFailure),
+        ("testSimpleSequence", testSimpleSequence),
+        ("testVoidReturnSequence", testVoidReturnSequence),
+        ("testVoidSequenceWithFailure", testVoidSequenceWithFailure),
     ]
 }
 
@@ -78,6 +82,7 @@ extension FutureExtensionsTests {
     // to regenerate.
     static let __allTests__FutureExtensionsTests = [
         ("testGuard", testGuard),
+        ("testTryThrowing", testTryThrowing),
     ]
 }
 
