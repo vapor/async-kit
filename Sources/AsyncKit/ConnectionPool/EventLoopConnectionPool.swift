@@ -261,7 +261,42 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
             ).cascade(to: promise)
         }
     }
-    
+
+    /// Forces all available connections in the pool to close so they have to be re-created.
+    public func closeAllConnections() {
+        self.closeAllConnections(logger: self.logger)
+    }
+
+    /// Forces all available connections in the pool to close so they have to be re-created.
+    ///
+    /// - Parameter logger: The logger to use for debug and trace logs.
+    public func closeAllConnections(logger: Logger) {
+        // dispatch to event loop thread if necessary
+        guard self.eventLoop.inEventLoop else {
+            return self.eventLoop.execute {
+                self.closeAllConnections(logger: logger)
+            }
+        }
+
+        // Close each avaialble connection unless it is already is closed
+        logger.debug("Closing connections")
+        self.available.forEach { connection in
+            if connection.isClosed { return }
+            _ = connection.close()
+        }
+
+        // Now that each connection is closed, we can remove them from the pool
+        logger.debug("Removing closed connections from queue")
+        self.available.removeAll()
+        self.activeConnections = 0
+
+        if let (logger, waiter) = self.waiters.first {
+            logger.debug("Fulfilling connection waitlist request")
+            self.waiters.removeFirst()
+            self.requestConnection(logger: logger).cascadeFailure(to: waiter)
+        }
+    }
+
     /// Closes the connection pool.
     ///
     /// All available connections will be closed immediately.

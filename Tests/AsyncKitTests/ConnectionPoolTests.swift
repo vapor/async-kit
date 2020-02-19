@@ -105,6 +105,42 @@ final class ConnectionPoolTests: XCTestCase {
         }
     }
 
+    func testCloseAll() throws {
+        let foo = FooDatabase()
+        let pool = EventLoopConnectionPool.init(
+            source: foo,
+            maxConnections: 2,
+            on: self.eventLoopGroup.next()
+        )
+
+        let conn1 = try pool.requestConnection().wait()
+        let conn1ID = conn1.id
+
+        let conn2 = try pool.requestConnection().wait()
+        let conn2ID = conn1.id
+
+        pool.releaseConnection(conn1)
+        pool.releaseConnection(conn2)
+
+        let conn1_2 = try pool.requestConnection().wait()
+        XCTAssertEqual(conn1ID, conn1_2.id)
+        pool.releaseConnection(conn1_2)
+
+        pool.closeAllConnections()
+
+        let conn1_3 = try pool.requestConnection().wait()
+        let conn2_2 = try pool.requestConnection().wait()
+
+        XCTAssertNotEqual(conn1ID, conn1_3.id)
+        XCTAssertNotEqual(conn1ID, conn2_2.id)
+        XCTAssertNotEqual(conn2ID, conn1_3.id)
+        XCTAssertNotEqual(conn2ID, conn2_2.id)
+
+        pool.releaseConnection(conn1_3)
+        pool.releaseConnection(conn2_2)
+        try pool.close().wait()
+    }
+
     func testPoolClose() throws {
         let foo = FooDatabase()
         let pool = EventLoopConnectionPool(
@@ -262,10 +298,12 @@ private final class FooDatabase: ConnectionPoolSource {
 private final class FooConnection: ConnectionPoolItem {
     var isClosed: Bool
     let eventLoop: EventLoop
+    let id: UUID
 
     init(on eventLoop: EventLoop) {
         self.eventLoop = eventLoop
         self.isClosed = false
+        self.id = UUID()
     }
     
     func close() -> EventLoopFuture<Void> {
