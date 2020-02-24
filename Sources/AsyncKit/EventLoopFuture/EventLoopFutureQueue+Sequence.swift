@@ -20,15 +20,13 @@ extension EventLoopFutureQueue {
         var results: [Value] = []
         results.reserveCapacity(seq.underestimatedCount)
         
-        let last = seq.reduce(self.append(self.eventLoop.future())) { // if the sequence is empty, the initial future will do nothing
+        let last = seq.reduce(self.eventLoop.future()) { // if the sequence is empty, the initial future will do nothing
             assert({ count += 1; return true }())
-            return self.append(generator($1).map { results.append($0) })
+            return self.append(generator($1).map { results.append($0) }, runningOn: .success)
         }
-        return self.append {
-            return last.map {
-                assert(results.count == count, "Sequence completed, but we didn't get all the results, or got too many - EventLoopFutureQueue is broken.")
-                return results
-            }
+        return self.append(onPrevious: .success) {
+            assert(results.count == count, "Sequence completed, but we didn't get all the results, or got too many - EventLoopFutureQueue is broken.")
+            return self.eventLoop.future(results)
         }
     }
     

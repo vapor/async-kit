@@ -120,11 +120,11 @@ final class EventLoopFutureQueueTests: XCTestCase {
     
     func testSimpleSequence() throws {
         let queue = EventLoopFutureQueue(eventLoop: self.eventLoop)
-        let values = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+        let values = [1, 2, 3, 4, 5]
         
         let all = queue.append(each: values) { self.eventLoop.slowFuture($0, sleeping: 1) }
 
-        try XCTAssertEqual(all.wait(), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+        try XCTAssertEqual(all.wait(), [1, 2, 3, 4, 5])
     }
     
     func testVoidReturnSequence() throws {
@@ -139,15 +139,18 @@ final class EventLoopFutureQueueTests: XCTestCase {
     
     func testSequenceWithFailure() throws {
         let queue = EventLoopFutureQueue(eventLoop: self.eventLoop)
+        var completedResults: [Int] = []
         
-        let all = queue.append(each: [1, 2, 3, 4]) { (v: Int) -> EventLoopFuture<Int> in
-            guard v < 3 else {
+        let all = queue.append(each: [1, 2, 3, 4, 5, 6]) { (v: Int) -> EventLoopFuture<Int> in
+            guard v < 3 || v > 5 else {
                 return self.eventLoop.future(error: Failure.nope)
             }
+            completedResults.append(v)
             return self.eventLoop.slowFuture(v, sleeping: 1)
         }
         
         try XCTAssertThrowsError(all.wait())
+        XCTAssertEqual(completedResults, [1, 2]) // Make sure we didn't run with value 6
     }
 
     func testVoidSequenceWithFailure() throws {
