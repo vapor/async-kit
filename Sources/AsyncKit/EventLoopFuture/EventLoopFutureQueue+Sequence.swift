@@ -34,7 +34,7 @@ extension EventLoopFutureQueue {
     /// and returns a `Void` future instead of a result array.
     public func append<S: Sequence>(each seq: S, _ generator: @escaping (S.Element) -> EventLoopFuture<Void>) -> EventLoopFuture<Void> {
         seq.forEach { _ = self.append(generator($0), runningOn: .success) }
-        return self.current
+        return self.append(self.eventLoop.future(), runningOn: .success) // returns correct future in case of empty sequence
     }
 
 }
