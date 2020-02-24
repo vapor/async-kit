@@ -158,7 +158,7 @@ final class EventLoopFutureQueueTests: XCTestCase {
         let values = 99..<135
         var output: [Int] = []
         let all = queue.append(each: values) { v -> EventLoopFuture<Void> in
-            guard v < 104 else {
+            guard v < 104 || v > 110 else {
                 return self.eventLoop.future(error: Failure.nope)
             }
             return self.eventLoop.slowFuture((), sleeping: 0).map { output.append(v) }

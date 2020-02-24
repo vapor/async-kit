@@ -20,9 +20,9 @@ extension EventLoopFutureQueue {
         var results: [Value] = []
         results.reserveCapacity(seq.underestimatedCount)
         
-        let last = seq.reduce(self.eventLoop.future()) { // if the sequence is empty, the initial future will do nothing
+        seq.forEach {
             assert({ count += 1; return true }())
-            return self.append(generator($1).map { results.append($0) }, runningOn: .success)
+            _ = self.append(generator($0).map { results.append($0) }, runningOn: .success)
         }
         return self.append(onPrevious: .success) {
             assert(results.count == count, "Sequence completed, but we didn't get all the results, or got too many - EventLoopFutureQueue is broken.")
@@ -33,7 +33,7 @@ extension EventLoopFutureQueue {
     /// Same as `append(each:_:)` above, but assumes all futures return `Void`
     /// and returns a `Void` future instead of a result array.
     public func append<S: Sequence>(each seq: S, _ generator: @escaping (S.Element) -> EventLoopFuture<Void>) -> EventLoopFuture<Void> {
-        return seq.reduce(self.append(self.eventLoop.future())) { self.append(generator($1)) }
+        return seq.reduce(self.eventLoop.future()) { self.append(generator($1), runningOn: .success) }
     }
 
 }
