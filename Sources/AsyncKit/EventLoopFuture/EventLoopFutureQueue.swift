@@ -28,8 +28,9 @@ public final class EventLoopFutureQueue {
 
     /// The event loop that all the futures's completions are handled on.
     public let eventLoop: EventLoop
-
-    private var current: EventLoopFuture<Void>
+    
+    /// The current waiter future. Getter internal for use in extensions.
+    internal private(set) var current: EventLoopFuture<Void>
 
     /// Create a new `EventLoopFutureQueue` on a given event loop.
     ///

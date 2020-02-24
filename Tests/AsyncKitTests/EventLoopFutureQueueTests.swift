@@ -167,6 +167,17 @@ final class EventLoopFutureQueueTests: XCTestCase {
         try XCTAssertThrowsError(all.wait())
         XCTAssertEqual(Array(values).prefix(while: { $0 < 104 }), output)
     }
+    
+    func testEmptySequence() throws {
+        let queue = EventLoopFutureQueue(eventLoop: self.eventLoop)
+        var count = 0
+        
+        _ = queue.append(onPrevious: .success) { queue.eventLoop.tryFuture { count = 1 } }
+        let all = queue.append(each: Array<Int>(), { _ in queue.eventLoop.tryFuture { count = 99 } })
+        
+        try XCTAssertNoThrow(all.wait())
+        XCTAssertEqual(count, 1)
+    }
 
 
     /// This TestCases EventLoopGroup
