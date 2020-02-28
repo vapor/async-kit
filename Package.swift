@@ -17,7 +17,6 @@ let package = Package(
         .target(name: "AsyncKit", dependencies: [
             .product(name: "Logging", package: "swift-log"),
             .product(name: "NIO", package: "swift-nio"),
-            .product(name: "NIOConcurrencyHelpers", package: "swift-nio"),
         ]),
         .testTarget(name: "AsyncKitTests", dependencies: [
             .target(name: "AsyncKit")
