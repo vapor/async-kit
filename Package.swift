@@ -1,10 +1,10 @@
-// swift-tools-version:5.1
+// swift-tools-version:5.2
 import PackageDescription
 
 let package = Package(
     name: "async-kit",
     platforms: [
-       .macOS(.v10_14)
+       .macOS(.v10_15)
     ],
     products: [
         .library(name: "AsyncKit", targets: ["AsyncKit"]),
@@ -14,7 +14,12 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
     ],
     targets: [
-        .target(name: "AsyncKit", dependencies: ["Logging", "NIO"]),
-        .testTarget(name: "AsyncKitTests", dependencies: ["AsyncKit"]),
+        .target(name: "AsyncKit", dependencies: [
+            .product(name: "Logging", package: "swift-log"),
+            .product(name: "NIO", package: "swift-nio"),
+        ]),
+        .testTarget(name: "AsyncKitTests", dependencies: [
+            .target(name: "AsyncKit")
+        ]),
     ]
 )
