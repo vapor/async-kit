@@ -15,7 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - run: swift test --enable-test-discovery --enable-code-coverage --sanitize=thread
+    - run: swift test --enable-test-discovery --enable-code-coverage --sanitize=thread --show-codecov-path
+    - name: Convert code coverage file
+    - run: llvm-cov export .build/debug/async-kitPackageTests.xctest/Contents/linux/async-kitPackageTests -instr-profile=.build/debug/codecov/default.profdata -format lcov > data.lcov
     - uses: codecov/codecov-action@v1
       with:
         fail_ci_if_error: true
