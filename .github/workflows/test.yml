@@ -20,4 +20,6 @@ jobs:
     - name: Convert codecov
       run: |
         llvm-cov export .build/debug/async-kitPackageTests.xctest -instr-profile=.build/debug/codecov/default.profdata -format lcov > data.lcov
-        bash <(curl -s https://codecov.io/bash)
+    - uses: codecov/codecov-action@v1
+      with:
+        fail_ci_if_error: true
