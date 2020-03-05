@@ -16,8 +16,8 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - run: swift test --enable-test-discovery --enable-code-coverage --sanitize=thread
+    - run: apt update -y; apt install -y curl
     - name: Convert codecov
       run: |
-        apt update -y; apt install -y curl
         llvm-cov export .build/debug/async-kitPackageTests.xctest -instr-profile=.build/debug/codecov/default.profdata -format lcov > data.lcov
         bash <(curl -s https://codecov.io/bash)
