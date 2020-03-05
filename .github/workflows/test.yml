@@ -18,7 +18,6 @@ jobs:
     - run: swift test --enable-test-discovery --enable-code-coverage --sanitize=thread
     - name: Convert codecov
       run: |
-        apk add curl
-        apk add bash
+        apt-get install curl
         llvm-cov export .build/debug/async-kitPackageTests.xctest -instr-profile=.build/debug/codecov/default.profdata -format lcov > data.lcov
         bash <(curl -s https://codecov.io/bash)
