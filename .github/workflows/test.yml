@@ -25,8 +25,7 @@ jobs:
     - run: swift test --enable-test-discovery --enable-code-coverage --sanitize=thread
     - run: apt update -y; apt install -y curl
     - name: Convert codecov
-      run: |
-        llvm-cov export .build/debug/async-kitPackageTests.xctest -instr-profile=.build/debug/codecov/default.profdata -format lcov > data.lcov
+      run: llvm-cov export .build/debug/async-kitPackageTests.xctest -instr-profile=.build/debug/codecov/default.profdata -format lcov > data.lcov
     - uses: codecov/codecov-action@v1
       with:
         fail_ci_if_error: true
