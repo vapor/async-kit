@@ -16,6 +16,13 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - run: swift test --enable-test-discovery --enable-code-coverage --sanitize=thread
+  codecov:
+    container:
+      image: vapor/swift:5.2-bionic
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - run: swift test --enable-test-discovery --enable-code-coverage --sanitize=thread
     - run: apt update -y; apt install -y curl
     - name: Convert codecov
       run: |
