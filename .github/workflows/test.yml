@@ -1,18 +1,32 @@
 name: test
 on:
 - pull_request
+- push
 jobs:
   xenial:
-    container: 
+    container:
       image: vapor/swift:5.2-xenial
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
     - run: swift test --enable-test-discovery --sanitize=thread
   bionic:
-    container: 
+    container:
       image: vapor/swift:5.2-bionic
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - run: swift test --enable-test-discovery --sanitize=thread
+    - run: swift test --enable-test-discovery --enable-code-coverage --sanitize=thread
+  codecov:
+    container:
+      image: vapor/swift:5.2-bionic
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - run: swift test --enable-test-discovery --enable-code-coverage --sanitize=thread
+    - run: apt update -y; apt install -y curl
+    - name: Convert codecov
+      run: llvm-cov export .build/debug/async-kitPackageTests.xctest -instr-profile=.build/debug/codecov/default.profdata -format lcov > data.lcov
+    - uses: codecov/codecov-action@v1
+      with:
+        fail_ci_if_error: true
