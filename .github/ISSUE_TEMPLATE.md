@@ -21,6 +21,6 @@
 
 <!-- We must know your exact environment or it is very difficult to help. -->
 
-* NIOKit version:
+* AsyncKit version:
 * SwiftNIO version:
 * Linux or macOS?
