@@ -1,7 +1,6 @@
 import NIO
 
 extension EventLoopFuture where Value: Sequence {
-    
     /// Calls a closure on each element in the sequence that is wrapped by an `EventLoopFuture`.
     ///
     ///     let collection = eventLoop.future([1, 2, 3, 4, 5, 6, 7, 8, 9])
@@ -129,5 +128,4 @@ extension EventLoopFuture where Value: Sequence {
             return try sequence.compactMap(transform)
         }
     }
-    
 }

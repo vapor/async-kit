@@ -1,7 +1,6 @@
 import NIO
 
 extension EventLoopGroup {
-    
     /// An alternate name for this would be `future(catching:)`, but with that
     /// name, trailing closure syntax just looks like `el.future { ... }`, which
     /// does not indicate to readers of the code that it is the error-capturing

@@ -1,14 +1,12 @@
 import NIO
 
 extension EventLoopFutureQueue {
-    
     /// For each element of the provided collection, invoke the given generator
     /// and queue the returned future. Return a future whose value is an array
     /// containing the result of each generated future in the same order as the
     /// original sequence. The resulting array is intended to have semantics
     /// substantially similar to those provided by `EventLoop.flatten(_:on:)`.
     public func append<S: Sequence, Value>(each seq: S, _ generator: @escaping (S.Element) -> EventLoopFuture<Value>) -> EventLoopFuture<[Value]> {
-
         // For each element in the sequence, obtain a generated future, add the result of that future to the result
         // array, map the future to `Void`, and append the result to this queue. Left with the final future in the
         // chain (representing the result of the final element in the sequence) via `reduce()`, append to the queue
@@ -36,6 +34,4 @@ extension EventLoopFutureQueue {
         seq.forEach { _ = self.append(generator($0), runningOn: .success) }
         return self.append(self.eventLoop.future(), runningOn: .success) // returns correct future in case of empty sequence
     }
-
 }
-

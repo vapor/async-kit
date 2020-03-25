@@ -1,7 +1,6 @@
 import NIO
 
 extension EventLoopGroup {
-    
     /// Creates a new, succeeded `Future` from the worker's event loop with a `Void` value.
     ///
     ///    let a: Future<Void> = req.future()
