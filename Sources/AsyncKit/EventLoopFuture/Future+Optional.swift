@@ -1,7 +1,6 @@
 import NIO
 
 extension EventLoopFuture {
-    
     /// Calls a closure on an optional value that is wrapped in an `EventLoopFuture` if it exists.
     ///
     ///     let optional = eventLoop.future(Optional<Int>.some(42))
@@ -19,7 +18,6 @@ extension EventLoopFuture {
     ) -> EventLoopFuture<Result?> where Value == Optional<Wrapped> {
         return self.map { $0.flatMap(closure) }
     }
-    
     
     /// Calls a closure on an optional value in an `EventLoopFuture` if it exists.
     ///
