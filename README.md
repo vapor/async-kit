@@ -19,7 +19,7 @@
         <img src="https://github.com/vapor/async-kit/workflows/test/badge.svg" alt="CI">
     </a>
     <a href="https://codecov.io/gh/vapor/async-kit">
-      <img src="https://codecov.io/gh/vapor/async-kit/branch/master/graph/badge.svg" />
+      <img src="https://codecov.io/gh/vapor/async-kit/branch/master/graph/badge.svg">
     </a>
     <a href="https://swift.org">
         <img src="http://img.shields.io/badge/swift-5.2-brightgreen.svg" alt="Swift 5.2">
