@@ -4,7 +4,7 @@ We're excited to see you're interested in contributing to the AsyncKit package! 
 
 ## Reporting Issues
 
-Go ahead and [open a new issue](https://github.com/vapor-community/async-kit/issues/new). The team will be notified and we should get back to you shortly.
+Go ahead and [open a new issue](https://github.com/vapor/async-kit/issues/new). The team will be notified and we should get back to you shortly.
 
 We give you a few sections to fill out to help us hunt down the issue more effectively. Be sure to fill everything out to help us get everything fixed up as fast as possible.
 
@@ -16,7 +16,7 @@ Bug fixes are pretty straight forward. Open up a PR and a maintainer will help g
 
 New features are little more complex. If you come up with an idea, you should follow these steps:
 
-- [Open a new issue](https://github.com/vapor-community/async-kit/issues/new) or post in the #ideas or #development channel on the [Discord server](http://vapor.team/). This lets the us know what you have in mind so we can discuss it from a higher level down to the implementation details.
+- [Open a new issue](https://github.com/vapor/async-kit/issues/new) or post in the #ideas or #development channel on the [Discord server](http://vapor.team/). This lets the us know what you have in mind so we can discuss it from a higher level down to the implementation details.
 
 - We'll take a look at your proposed idea and decide whether it would be better as a feature for SwiftNIO, AsyncKit, or maybe it isn't needed enough to be added (don't take it personally if we reject it 😄, we still think you're a nice person). If we decide it fits with AsyncKit, you can go ahead and open a PR!
 - After you open the PR, make sure it fills out the PR checklist:
