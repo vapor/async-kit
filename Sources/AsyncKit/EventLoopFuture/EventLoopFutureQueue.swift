@@ -28,7 +28,7 @@ public final class EventLoopFutureQueue {
         /// A textual representation of the error.
         ///
         /// In the case of a `.previousError` case, the result will be flattened to a single `.previousError(error)`,
-        /// instead of nesting them so deep that it's too large to fit in a single Slack message.
+        /// instead of being nested _n_ cases deep `.previousError(.previousError(.previousError(error)))`.
         public var description: String {
             switch self {
             case .previousSuccess: return "previousSuccess"
