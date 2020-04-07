@@ -179,6 +179,15 @@ final class EventLoopFutureQueueTests: XCTestCase {
         XCTAssertEqual(count, 1)
     }
 
+    func testContinueErrorPreviousErrorDescription() throws {
+        let error = EventLoopFutureQueue.ContinueError.previousError(
+            EventLoopFutureQueue.ContinueError.previousError(
+                EventLoopFutureQueue.ContinueError.previousError(Failure.nope)
+            )
+        )
+
+        XCTAssertEqual(error.description, "previousError(nope)")
+    }
 
     /// This TestCases EventLoopGroup
     var group: EventLoopGroup!
