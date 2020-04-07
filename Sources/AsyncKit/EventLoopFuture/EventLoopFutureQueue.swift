@@ -17,13 +17,31 @@ public final class EventLoopFutureQueue {
     }
 
     /// Errors that get propogated based on a future's completion status and the next appended closure's continuation condition.
-    public enum ContinueError: Error {
+    public enum ContinueError: Error, CustomStringConvertible {
 
         /// A previous future failed with an error, which we don't desire.
         case previousError(Error)
 
         /// A previous future succeeded, which we don't desire.
         case previousSuccess
+
+        /// A textual representation of the error.
+        ///
+        /// In the case of a `.previousError` case, the result will be flattened to a single `.previousError(error)`,
+        /// instead of being nested _n_ cases deep `.previousError(.previousError(.previousError(error)))`.
+        public var description: String {
+            switch self {
+            case .previousSuccess: return "previousSuccess"
+            case let .previousError(error):
+                if let sub = error as? ContinueError {
+                    return sub.description
+                } else if let convertible = error as? CustomStringConvertible {
+                    return "previousError(\(convertible.description))"
+                } else {
+                    return "previousError(\(error))"
+                }
+            }
+        }
     }
 
     /// The event loop that all the futures's completions are handled on.
