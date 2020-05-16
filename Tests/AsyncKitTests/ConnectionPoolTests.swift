@@ -197,6 +197,63 @@ final class ConnectionPoolTests: XCTestCase {
         try futures.flatten(on: eventLoopGroup.next()).wait()
     }
     
+    func testGracefulShutdownAsync() throws {
+        let foo = FooDatabase()
+        let pool = EventLoopGroupConnectionPool(
+            source: foo,
+            maxConnectionsPerEventLoop: 2,
+            on: self.eventLoopGroup
+        )
+        
+        let expectation1 = XCTestExpectation(description: "Shutdown completion")
+        let expectation2 = XCTestExpectation(description: "Shutdown completion with error")
+        
+        pool.shutdownGracefully {
+            XCTAssertNil($0)
+            expectation1.fulfill()
+        }
+        XCTWaiter().wait(for: [expectation1], timeout: 5.0)
+        
+        pool.shutdownGracefully {
+            XCTAssertEqual($0 as? ConnectionPoolError, ConnectionPoolError.shutdown)
+            expectation2.fulfill()
+        }
+        XCTWaiter().wait(for: [expectation2], timeout: 5.0)
+    }
+    
+    func testGracefulShutdownSync() throws {
+        let foo = FooDatabase()
+        let pool = EventLoopGroupConnectionPool(
+            source: foo,
+            maxConnectionsPerEventLoop: 2,
+            on: self.eventLoopGroup
+        )
+        
+        XCTAssertNoThrow(try pool.syncShutdownGracefully())
+        XCTAssertThrowsError(try pool.syncShutdownGracefully()) {
+            XCTAssertEqual($0 as? ConnectionPoolError, ConnectionPoolError.shutdown)
+        }
+    }
+
+    func testGracefulShutdownWithHeldConnection() throws {
+        let foo = FooDatabase()
+        let pool = EventLoopGroupConnectionPool(
+            source: foo,
+            maxConnectionsPerEventLoop: 2,
+            on: self.eventLoopGroup
+        )
+        
+        let connection = try pool.requestConnection().wait()
+        
+        XCTAssertNoThrow(try pool.syncShutdownGracefully())
+        XCTAssertThrowsError(try pool.syncShutdownGracefully()) {
+            XCTAssertEqual($0 as? ConnectionPoolError, ConnectionPoolError.shutdown)
+        }
+        XCTAssertFalse(try connection.eventLoop.submit{ connection.isClosed }.wait())
+        pool.releaseConnection(connection)
+        XCTAssertTrue(try connection.eventLoop.submit{ connection.isClosed }.wait())
+    }
+
     func testEventLoopDelegation() throws {
         let foo = FooDatabase()
         let pool = EventLoopGroupConnectionPool(
