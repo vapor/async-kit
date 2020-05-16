@@ -226,12 +226,19 @@ final class ConnectionPoolTests: XCTestCase {
 
     var eventLoopGroup: EventLoopGroup!
 
-    override func setUp() {
+    override func setUpWithError() throws {
+        try super.setUpWithError()
         self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 4)
     }
 
-    override func tearDown() {
-        try! self.eventLoopGroup.syncShutdownGracefully()
+    override func tearDownWithError() throws {
+        try self.eventLoopGroup.syncShutdownGracefully()
+        try super.tearDownWithError()
+    }
+
+    override class func setUp() {
+        super.setUp()
+        XCTAssertTrue(isLoggingConfigured)
     }
 }
 

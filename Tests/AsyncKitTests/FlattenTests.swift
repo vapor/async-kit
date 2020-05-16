@@ -55,16 +55,21 @@ final class FlattenTests: XCTestCase {
     
     /// Sets up the TestCase for use
     /// and initializes the EventLoopGroup
-    override func setUp() {
-        super.setUp()
+    override func setUpWithError() throws {
+        try super.setUpWithError()
         self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
     }
-    
+
     /// Tears down the TestCase and
     /// shuts down the EventLoopGroup
-    override func tearDown() {
-        XCTAssertNoThrow(try self.group.syncShutdownGracefully())
+    override func tearDownWithError() throws {
+        try self.group.syncShutdownGracefully()
         self.group = nil
-        super.tearDown()
+        try super.tearDownWithError()
+    }
+
+    override class func setUp() {
+        super.setUp()
+        XCTAssertTrue(isLoggingConfigured)
     }
 }
