@@ -100,7 +100,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
             return (eventLoop ?? self.eventLoopGroup).future(error: ConnectionPoolError.shutdown)
         }
         return self.pool(for: eventLoop ?? self.eventLoopGroup.next())
-                   .withConnection(logger: logger ?? self.logger, closure)
+           .withConnection(logger: logger ?? self.logger, closure)
     }
     
     /// Requests a pooled connection.
