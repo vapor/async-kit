@@ -29,4 +29,17 @@ extension EventLoopGroup {
     public func future<T>(error: Error) -> EventLoopFuture<T> {
         return self.next().makeFailedFuture(error)
     }
+    
+    /// Creates a new `Future` from the worker's event loop, succeeded or failed based on the input `Result`.
+    ///
+    ///     let a: EventLoopFuture<String> = req.future(.success("hello"))
+    ///     let b: EventLoopFuture<String> = req.future(.failed(Abort(.imATeapot))
+    ///
+    /// - Parameter result: The result that the future will wrap.
+    /// - Returns: The succeeded or failed future.
+    public func future<T>(result: Result<T, Error>) -> EventLoopFuture<T> {
+        let promise: EventLoopPromise<T> = self.next().makePromise()
+        promise.completeWith(result)
+        return promise.futureResult
+    }
 }
