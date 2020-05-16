@@ -277,12 +277,12 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
         
         shutdownGroup.notify(queue: shutdownQueue) {
             switch outcome {
-                case .success:
-                    self.logger.debug("Connection group pool finished shutdown.")
-                    callback(nil)
-                case .failure(let error):
-                    self.logger.error("Connection group pool got shutdown error (and then shut down anyway): \(error)")
-                    callback(error)
+            case .success:
+                self.logger.debug("Connection group pool finished shutdown.")
+                callback(nil)
+            case .failure(let error):
+                self.logger.error("Connection group pool got shutdown error (and then shut down anyway): \(error)")
+                callback(error)
             }
         }
     }
