@@ -59,9 +59,9 @@ jobs:
           $b/async-kitPackageTests.xctest >$(swift test --show-codecov-path).lcov
           echo "::set-env name=CODECOV_FILE::$(swift test --show-codecov-path).lcov"
       - name: Send to codecov.io
-         uses: codecov/codecov-action@v1.0.7
-         with:
-           file: ${{ env.CODECOV_FILE }}
-           flags: unittests
-           env_vars: SWIFT_RUNNER
-           fail_ci_if_error: true
+        uses: codecov/codecov-action@v1.0.7
+        with:
+          file: ${{ env.CODECOV_FILE }}
+          flags: unittests
+          env_vars: SWIFT_RUNNER
+          fail_ci_if_error: true
