@@ -30,8 +30,8 @@ jobs:
       - name: Convert data to LCOV format and save location
         run: |
           export b=$(swift build --show-bin-path) && llvm-cov export -format lcov \
-            -instr-profile=$b/codecov/default.profdata $b/async-kitPackageTests.xctest \
-            >$(swift test --show-codecov-path).lcov
+            -instr-profile=$b/codecov/default.profdata --ignore-filename-regex='\.build/' \
+            $b/async-kitPackageTests.xctest >$(swift test --show-codecov-path).lcov
           echo "::set-env name=CODECOV_FILE::$(swift test --show-codecov-path).lcov"
       - name: Send to codecov.io
         uses: codecov/codecov-action@v1.0.7
@@ -51,4 +51,17 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
       - name: Run tests with Thread Sanitizer
-        run: swift test --enable-test-discovery --sanitize=thread
+        run: swift test --enable-test-discovery --sanitize=thread --enable-code-coverage
+      - name: Convert data to LCOV format and save location
+         run: |
+           export b=$(swift build --show-bin-path) && xcrun llvm-cov export -format lcov \
+            -instr-profile=$b/codecov/default.profdata --ignore-filename-regex='\.build/' \
+            $b/async-kitPackageTests.xctest >$(swift test --show-codecov-path).lcov
+          echo "::set-env name=CODECOV_FILE::$(swift test --show-codecov-path).lcov"
+      - name: Send to codecov.io
+         uses: codecov/codecov-action@v1.0.7
+         with:
+           file: ${{ env.CODECOV_FILE }}
+           flags: unittests
+           env_vars: SWIFT_RUNNER
+           fail_ci_if_error: true
