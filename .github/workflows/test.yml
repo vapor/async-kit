@@ -1,5 +1,7 @@
 name: Test Matrix
-on: ['pull_request', 'push']
+on:
+  pull_request: 
+  push: { branches: [ master ] }
 jobs:
   tests-linux:
     strategy:
