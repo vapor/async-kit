@@ -28,4 +28,20 @@ public extension EventLoopFuture {
         }
         return promise.futureResult
     }
+
+    // MARK: - flatMapAlways
+    
+    /// When the current `EventLoopFuture` receives any result, run the provided callback, which will provide a new
+    /// `EventLoopFuture`. Essentially combines the behaviors of `.always(_:)` and `.flatMap(file:line:_:)`.
+    ///
+    /// This is useful when some work must be done for both success and failure states, especially work that requires
+    /// temporarily extending the lifetime of one or more objects.
+    func flatMapAlways<NewValue>(
+        file: StaticString = #file, line: UInt = #line,
+        _ callback: @escaping (Result<Value, Error>) -> EventLoopFuture<NewValue>
+    ) -> EventLoopFuture<NewValue> {
+        let promise = self.eventLoop.makePromise(of: NewValue.self, file: file, line: line)
+        self.whenComplete { result in callback(result).cascade(to: promise) }
+        return promise.futureResult
+    }
 }
