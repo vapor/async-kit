@@ -66,17 +66,12 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
         self.lock = .init()
         self.eventLoopGroup = eventLoopGroup
         self.didShutdown = false
-        // setup pool storage
-        var storage: [EventLoop.Key: EventLoopConnectionPool<Source>] = [:]
-        for eventLoop in self.eventLoopGroup.makeIterator() {
-            storage[eventLoop.key] = .init(
-                source: source,
-                maxConnections: maxConnectionsPerEventLoop,
-                logger: self.logger,
-                on: eventLoop
-            )
-        }
-        self.storage = storage
+        self.storage = .init(uniqueKeysWithValues: eventLoopGroup.makeIterator().map { ($0.key, .init(
+            source: source,
+            maxConnections: maxConnectionsPerEventLoop,
+            logger: logger,
+            on: $0
+        )) })
     }
     
     /// Fetches a pooled connection for the lifetime of the closure.
@@ -100,8 +95,11 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
         on eventLoop: EventLoop? = nil,
         _ closure: @escaping (Source.Connection) -> EventLoopFuture<Result>
     ) -> EventLoopFuture<Result> {
-        self.pool(for: eventLoop ?? self.eventLoopGroup.next())
-            .withConnection(logger: logger ?? self.logger, closure)
+        guard !self.lock.withLock({ self.didShutdown }) else {
+            return (eventLoop ?? self.eventLoopGroup).future(error: ConnectionPoolError.shutdown)
+        }
+        return self.pool(for: eventLoop ?? self.eventLoopGroup.next())
+                   .withConnection(logger: logger ?? self.logger, closure)
     }
     
     /// Requests a pooled connection.
@@ -122,8 +120,11 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
         logger: Logger? = nil,
         on eventLoop: EventLoop? = nil
     ) -> EventLoopFuture<Source.Connection> {
-        self.pool(for: eventLoop ?? self.eventLoopGroup.next())
-            .requestConnection(logger: logger ?? self.logger)
+        guard !self.lock.withLock({ self.didShutdown }) else {
+            return (eventLoop ?? self.eventLoopGroup).future(error: ConnectionPoolError.shutdown)
+        }
+        return self.pool(for: eventLoop ?? self.eventLoopGroup.next())
+                   .requestConnection(logger: logger ?? self.logger)
     }
     
     /// Releases a connection back to the pool. Use with `requestConnection()`.
@@ -158,15 +159,17 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
     /// Connection pools must be closed before they deinitialize.
     public func shutdown() {
         // synchronize access to closing
-        self.lock.lock()
-        defer { self.lock.unlock() }
-
-        // check to make sure we aren't double closing
-        guard !self.didShutdown else {
+        guard self.lock.withLock({
+            // check to make sure we aren't double closing
+            guard !self.didShutdown else {
+                return false
+            }
+            self.didShutdown = true
+            self.logger.debug("Connection pool shutting down, closing each event loop's storage")
+            return true
+        }) else {
             return
         }
-        self.didShutdown = true
-        self.logger.debug("Connection pool shutting down, closing each event loop's storage")
 
         // shutdown all pools
         for pool in self.storage.values {
@@ -179,13 +182,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
     }
     
     deinit {
-        // synchronize access to didShutdown
-        self.lock.lock()
-        defer { self.lock.unlock() }
-        
-        if !self.didShutdown {
-            assertionFailure("ConnectionPool.shutdown() was not called before deinit.")
-        }
+        assert(self.lock.withLock { self.didShutdown }, "ConnectionPool.shutdown() was not called before deinit.")
     }
 }
 
