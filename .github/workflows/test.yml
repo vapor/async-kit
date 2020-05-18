@@ -1,32 +1,68 @@
-name: test
+name: Test Matrix
 on:
-- pull_request
-- push
+  pull_request: 
+  push: { branches: [ master ] }
 jobs:
-  xenial:
-    container:
-      image: vapor/swift:5.2-xenial
+  tests-linux:
+    strategy:
+      matrix:
+        runner: ['swift:5.2-xenial', 'swift:5.2-bionic',
+                 'swiftlang/swift:nightly-5.2-xenial', 'swiftlang/swift:nightly-5.2-bionic',
+                 'swiftlang/swift:nightly-5.3-xenial', 'swiftlang/swift:nightly-5.3-bionic',
+                 'swiftlang/swift:nightly-master-xenial', 'swiftlang/swift:nightly-master-bionic',
+                 'swiftlang/swift:nightly-master-focal',
+                 'swiftlang/swift:nightly-master-centos8', 'swiftlang/swift:nightly-master-amazonlinux2']
+        include:
+          - installcmd: 'apt-get -q update && apt-get -q install -y curl'
+          - { 'runner': 'swiftlang/swift:nightly-master-centos8', 'installcmd': 'true' }
+          - { 'runner': 'swiftlang/swift:nightly-master-amazonlinux2', 'installcmd': 'true' }
+    container: ${{ matrix.runner }}
+    env:
+      SWIFT_RUNNER: ${{ matrix.runner }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v1
-    - run: swift test --enable-test-discovery --sanitize=thread
-  bionic:
-    container:
-      image: vapor/swift:5.2-bionic
-    runs-on: ubuntu-latest
+      - name: Install dependencies
+        run: ${{ matrix.installcmd }}
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Run tests with Thread Sanitizer and code coverage
+        run: swift test --enable-test-discovery --sanitize=thread --enable-code-coverage
+      - name: Convert data to LCOV format and save location
+        run: |
+          export b=$(swift build --show-bin-path) && llvm-cov export -format lcov \
+          -instr-profile=$b/codecov/default.profdata --ignore-filename-regex='\.build/' \
+          $b/async-kitPackageTests.xctest >$(swift test --show-codecov-path).lcov
+          echo "::set-env name=CODECOV_FILE::$(swift test --show-codecov-path).lcov"
+      - name: Send to codecov.io
+        uses: codecov/codecov-action@v1.0.7
+        with:
+          file: ${{ env.CODECOV_FILE }}
+          flags: unittests
+          env_vars: SWIFT_RUNNER
+          fail_ci_if_error: true
+  tests-macos:
+    runs-on: macos-latest
+    env:
+      SWIFT_RUNNER: 'macOS'
     steps:
-    - uses: actions/checkout@v1
-    - run: swift test --enable-test-discovery --enable-code-coverage --sanitize=thread
-  codecov:
-    container:
-      image: vapor/swift:5.2-bionic
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v1
-    - run: swift test --enable-test-discovery --enable-code-coverage --sanitize=thread
-    - run: apt update -y; apt install -y curl
-    - name: Convert codecov
-      run: llvm-cov export .build/debug/async-kitPackageTests.xctest -instr-profile=.build/debug/codecov/default.profdata -format lcov > data.lcov
-    - uses: codecov/codecov-action@v1
-      with:
-        fail_ci_if_error: true
+      - name: Select latest available Xcode
+        uses: maxim-lobanov/setup-xcode@1.0
+        with: { 'xcode-version': 'latest' }
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Run tests with Thread Sanitizer
+        run: swift test --enable-test-discovery --sanitize=thread --enable-code-coverage
+      - name: Convert data to LCOV format and save location
+        run: |
+          export b=$(swift build --show-bin-path) && xcrun llvm-cov export -format lcov \
+          -instr-profile=$b/codecov/default.profdata --ignore-filename-regex='\.build/' \
+          $b/async-kitPackageTests.xctest/Contents/MacOS/async-kitPackageTests \
+          >$(swift test --show-codecov-path).lcov
+          echo "::set-env name=CODECOV_FILE::$(swift test --show-codecov-path).lcov"
+      - name: Send to codecov.io
+        uses: codecov/codecov-action@v1.0.7
+        with:
+          file: ${{ env.CODECOV_FILE }}
+          flags: unittests
+          env_vars: SWIFT_RUNNER
+          fail_ci_if_error: true

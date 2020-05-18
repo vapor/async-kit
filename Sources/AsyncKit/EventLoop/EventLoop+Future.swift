@@ -1,18 +1,18 @@
 import NIO
 
 extension EventLoopGroup {
-    /// Creates a new, succeeded `Future` from the worker's event loop with a `Void` value.
+    /// Creates a new, succeeded `EventLoopFuture` from the worker's event loop with a `Void` value.
     ///
-    ///    let a: Future<Void> = req.future()
+    ///    let a: EventLoopFuture<Void> = req.future()
     ///
     /// - Returns: The succeeded future.
     public func future() -> EventLoopFuture<Void> {
         return self.next().makeSucceededFuture(())
     }
     
-    /// Creates a new, succeeded `Future` from the worker's event loop.
+    /// Creates a new, succeeded `EventLoopFuture` from the worker's event loop.
     ///
-    ///    let a: Future<String> = req.future("hello")
+    ///    let a: EventLoopFuture<String> = req.future("hello")
     ///
     /// - Parameter value: The value that the future will wrap.
     /// - Returns: The succeeded future.
@@ -20,13 +20,26 @@ extension EventLoopGroup {
         return self.next().makeSucceededFuture(value)
     }
     
-    /// Creates a new, failed `Future` from the worker's event loop.
+    /// Creates a new, failed `EventLoopFuture` from the worker's event loop.
     ///
-    ///    let b: Future<String> = req.future(error: Abort(...))
+    ///    let b: EvenLoopFuture<String> = req.future(error: Abort(...))
     ///
     /// - Parameter error: The error that the future will wrap.
     /// - Returns: The failed future.
     public func future<T>(error: Error) -> EventLoopFuture<T> {
         return self.next().makeFailedFuture(error)
+    }
+    
+    /// Creates a new `Future` from the worker's event loop, succeeded or failed based on the input `Result`.
+    ///
+    ///     let a: EventLoopFuture<String> = req.future(.success("hello"))
+    ///     let b: EventLoopFuture<String> = req.future(.failed(Abort(.imATeapot))
+    ///
+    /// - Parameter result: The result that the future will wrap.
+    /// - Returns: The succeeded or failed future.
+    public func future<T>(result: Result<T, Error>) -> EventLoopFuture<T> {
+        let promise: EventLoopPromise<T> = self.next().makePromise()
+        promise.completeWith(result)
+        return promise.futureResult
     }
 }

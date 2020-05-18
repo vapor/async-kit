@@ -1,5 +1,6 @@
 import struct Logging.Logger
 import class NIOConcurrencyHelpers.Lock
+import Dispatch
 
 /// Holds a collection of connection pools for each `EventLoop` on an `EventLoopGroup`.
 ///
@@ -66,17 +67,12 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
         self.lock = .init()
         self.eventLoopGroup = eventLoopGroup
         self.didShutdown = false
-        // setup pool storage
-        var storage: [EventLoop.Key: EventLoopConnectionPool<Source>] = [:]
-        for eventLoop in self.eventLoopGroup.makeIterator() {
-            storage[eventLoop.key] = .init(
-                source: source,
-                maxConnections: maxConnectionsPerEventLoop,
-                logger: self.logger,
-                on: eventLoop
-            )
-        }
-        self.storage = storage
+        self.storage = .init(uniqueKeysWithValues: eventLoopGroup.makeIterator().map { ($0.key, .init(
+            source: source,
+            maxConnections: maxConnectionsPerEventLoop,
+            logger: logger,
+            on: $0
+        )) })
     }
     
     /// Fetches a pooled connection for the lifetime of the closure.
@@ -100,8 +96,11 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
         on eventLoop: EventLoop? = nil,
         _ closure: @escaping (Source.Connection) -> EventLoopFuture<Result>
     ) -> EventLoopFuture<Result> {
-        self.pool(for: eventLoop ?? self.eventLoopGroup.next())
-            .withConnection(logger: logger ?? self.logger, closure)
+        guard !self.lock.withLock({ self.didShutdown }) else {
+            return (eventLoop ?? self.eventLoopGroup).future(error: ConnectionPoolError.shutdown)
+        }
+        return self.pool(for: eventLoop ?? self.eventLoopGroup.next())
+           .withConnection(logger: logger ?? self.logger, closure)
     }
     
     /// Requests a pooled connection.
@@ -122,7 +121,10 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
         logger: Logger? = nil,
         on eventLoop: EventLoop? = nil
     ) -> EventLoopFuture<Source.Connection> {
-        self.pool(for: eventLoop ?? self.eventLoopGroup.next())
+        guard !self.lock.withLock({ self.didShutdown }) else {
+            return (eventLoop ?? self.eventLoopGroup).future(error: ConnectionPoolError.shutdown)
+        }
+        return self.pool(for: eventLoop ?? self.eventLoopGroup.next())
             .requestConnection(logger: logger ?? self.logger)
     }
     
@@ -156,17 +158,22 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
     /// Once closed, the connection pool cannot be used to create new connections.
     ///
     /// Connection pools must be closed before they deinitialize.
+    ///
+    /// - Warning: This method is soft-deprecated. Use `syncShutdownGracefully()` or
+    ///   `shutdownGracefully()` instead.
     public func shutdown() {
         // synchronize access to closing
-        self.lock.lock()
-        defer { self.lock.unlock() }
-
-        // check to make sure we aren't double closing
-        guard !self.didShutdown else {
+        guard self.lock.withLock({
+            // check to make sure we aren't double closing
+            guard !self.didShutdown else {
+                return false
+            }
+            self.didShutdown = true
+            self.logger.debug("Connection pool shutting down, closing each event loop's storage")
+            return true
+        }) else {
             return
         }
-        self.didShutdown = true
-        self.logger.debug("Connection pool shutting down, closing each event loop's storage")
 
         // shutdown all pools
         for pool in self.storage.values {
@@ -178,14 +185,110 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
         }
     }
     
-    deinit {
-        // synchronize access to didShutdown
-        self.lock.lock()
-        defer { self.lock.unlock() }
+    /// Closes the connection pool.
+    ///
+    /// All available connections will be closed immediately. Any connections still in use will be
+    /// closed as soon as they are returned to the pool. Once closed, the pool can not be used to
+    /// create new connections.
+    ///
+    /// Connection pools must be closed before they deinitialize.
+    ///
+    /// This method shuts down synchronously, waiting for all connection closures to complete before
+    /// returning.
+    ///
+    /// - Warning: The pool is always fully shut down once this method returns, even if an error is
+    ///   thrown. All errors are purely advisory.
+    public func syncShutdownGracefully() throws {
+        // - TODO: Does this need to assert "not on any EventLoop", as `EventLoopGroup.syncShutdownGracefully()` does?
+        var possibleError: Error? = nil
+        let waiter = DispatchWorkItem {}
+        let errorLock = Lock()
         
-        if !self.didShutdown {
-            assertionFailure("ConnectionPool.shutdown() was not called before deinit.")
+        self.shutdownGracefully {
+            if let error = $0 {
+                errorLock.withLock { possibleError = error }
+            }
+            waiter.perform()
         }
+        waiter.wait()
+        try errorLock.withLock {
+            if let error = possibleError {
+                throw error
+            }
+        }
+    }
+    
+    /// Closes the connection pool.
+    ///
+    /// All available connections will be closed immediately. Any connections still in use will be
+    /// closed as soon as they are returned to the pool. Once closed, the pool can not be used to
+    /// create new connections.
+    ///
+    /// Connection pools must be closed before they deinitialize.
+    ///
+    /// This method shuts the pool down asynchronously. It may be invoked on any event loop. The
+    /// provided callback will be notified when shutdown is complete. It is invalid to allow a pool
+    /// to deinitialize before it has fully shut down.
+    ///
+    /// This method promises explicitly as API contract not to invoke the callback before returning
+    /// to its caller. It further promises the callback will not be invoked on any event loop
+    /// belonging to the pool.
+    ///
+    /// - Warning: Any invocation of the callback represents a signal that the pool has fully shut
+    ///   down. This is true even if the error parameter is non-`nil`; errors are purely advisory.
+    public func shutdownGracefully(_ callback: @escaping (Error?) -> Void) {
+        // Protect access to shared state.
+        guard self.lock.withLock({
+            // Do not initiate shutdown multiple times.
+            guard !self.didShutdown else {
+                DispatchQueue.global().async {
+                    self.logger.warning("Connection pool can not be shut down more than once.")
+                    callback(ConnectionPoolError.shutdown)
+                }
+                return false
+            }
+            
+            // Set the flag as soon as we know a shutdown is needed.
+            self.didShutdown = true
+            self.logger.trace("Connection group pool shutdown start - telling the loop pools what's up.")
+            // Don't need to hold the lock anymore; the shutdown can proceed without blocking anything else, though
+            // it's also true there's nothing else to block that we care about after shutdown begin.
+            return true
+        }) else { return }
+        
+        // Tell each pool to shut down and take note of any errors if they show up. Use the dispatch
+        // queue to manage synchronization to avoid being trapped on any of our own event loops. When
+        // all pools are closed, invoke the callback and provide it the first encountered error, if
+        // any. By design, this loosely matches the general flow used by `MultiThreadedEventLoopGroup`'s
+        // `shutdownGracefully(queue:_:)` implementation.
+        let shutdownQueue = DispatchQueue(label: "codes.vapor.async-kit.poolShutdownGracefullyQueue")
+        let shutdownGroup = DispatchGroup()
+        var outcome: Result<Void, Error> = .success(())
+        
+        for pool in self.storage.values {
+            shutdownGroup.enter()
+            pool.close().whenComplete { result in
+                shutdownQueue.async() {
+                    outcome = outcome.flatMap { result }
+                    shutdownGroup.leave()
+                }
+            }
+        }
+        
+        shutdownGroup.notify(queue: shutdownQueue) {
+            switch outcome {
+            case .success:
+                self.logger.debug("Connection group pool finished shutdown.")
+                callback(nil)
+            case .failure(let error):
+                self.logger.error("Connection group pool got shutdown error (and then shut down anyway): \(error)")
+                callback(error)
+            }
+        }
+    }
+
+    deinit {
+        assert(self.lock.withLock { self.didShutdown }, "ConnectionPool.shutdown() was not called before deinit.")
     }
 }
 
