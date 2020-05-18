@@ -125,7 +125,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
             return (eventLoop ?? self.eventLoopGroup).future(error: ConnectionPoolError.shutdown)
         }
         return self.pool(for: eventLoop ?? self.eventLoopGroup.next())
-                   .requestConnection(logger: logger ?? self.logger)
+            .requestConnection(logger: logger ?? self.logger)
     }
     
     /// Releases a connection back to the pool. Use with `requestConnection()`.
