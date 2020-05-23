@@ -134,6 +134,29 @@ final class ConnectionPoolTests: XCTestCase {
             // pass
         }
     }
+    
+    // https://github.com/vapor/async-kit/issues/63
+    func testDeadlock() {
+        let foo = FooDatabase()
+        let pool = EventLoopConnectionPool(
+            source: foo,
+            maxConnections: 1,
+            creationTimeout: .seconds(1),
+            on: self.eventLoopGroup.next()
+        )
+        defer { try! pool.close().wait() }
+        _ = pool.requestConnection()
+        let start = Date()
+        let a = pool.requestConnection()
+        do {
+            _ = try a.wait()
+        } catch {
+            let interval = Date().timeIntervalSince(start)
+            XCTAssertGreaterThan(interval, 1)
+            XCTAssertLessThan(interval, 2)
+            XCTAssertEqual(error as? ConnectionPoolError, ConnectionPoolError.connectionCreateTimeout)
+        }
+    }
 
     func testPerformance() {
         guard performance(expected: 0.088) else { return }

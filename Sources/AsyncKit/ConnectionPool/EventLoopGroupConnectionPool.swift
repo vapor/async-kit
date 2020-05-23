@@ -1,4 +1,5 @@
 import struct Logging.Logger
+import struct NIO.TimeAmount
 import class NIOConcurrencyHelpers.Lock
 import Dispatch
 
@@ -58,6 +59,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
     public init(
         source: Source,
         maxConnectionsPerEventLoop: Int = 1,
+        creationTimeout: TimeAmount = .seconds(10),
         logger: Logger = .init(label: "codes.vapor.pool"),
         on eventLoopGroup: EventLoopGroup
     ) {
@@ -70,6 +72,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
         self.storage = .init(uniqueKeysWithValues: eventLoopGroup.makeIterator().map { ($0.key, .init(
             source: source,
             maxConnections: maxConnectionsPerEventLoop,
+            creationTimeout: creationTimeout,
             logger: logger,
             on: $0
         )) })
