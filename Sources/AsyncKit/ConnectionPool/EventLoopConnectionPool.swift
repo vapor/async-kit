@@ -216,7 +216,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
             }
             
             // return waiter
-            return promise.futureResult.always { _ in task.cancel() }
+            return promise.futureResult
         }
     }
     

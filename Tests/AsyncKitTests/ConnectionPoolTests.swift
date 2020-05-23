@@ -150,6 +150,7 @@ final class ConnectionPoolTests: XCTestCase {
         let a = pool.requestConnection()
         do {
             _ = try a.wait()
+            XCTFail("Connection should have deadlocked and thrown ConnectionPoolError.connectionCreateTimeout")
         } catch {
             let interval = Date().timeIntervalSince(start)
             XCTAssertGreaterThan(interval, 1)

@@ -225,6 +225,10 @@ fileprivate extension EventLoop {
     }
 }
 
-fileprivate enum Failure: Error, Equatable {
+fileprivate enum Failure: Error, Equatable, CustomStringConvertible {
     case nope
+    
+    var description: String {
+        return "nope"
+    }
 }
