@@ -54,12 +54,14 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
     ///     - source: Creates new connections when needed.
     ///     - maxConnectionsPerEventLoop: Limits the number of connections that can be open per event loop.
     ///                                   Defaults to 1.
+    ///     - requestTimeout: Timeout for requesting a new connection.
+    ///                       Defaults to 10 seconds.
     ///     - logger: For lifecycle logs.
     ///     - on: Event loop group.
     public init(
         source: Source,
         maxConnectionsPerEventLoop: Int = 1,
-        creationTimeout: TimeAmount = .seconds(10),
+        requestTimeout: TimeAmount = .seconds(10),
         logger: Logger = .init(label: "codes.vapor.pool"),
         on eventLoopGroup: EventLoopGroup
     ) {
@@ -72,7 +74,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
         self.storage = .init(uniqueKeysWithValues: eventLoopGroup.makeIterator().map { ($0.key, .init(
             source: source,
             maxConnections: maxConnectionsPerEventLoop,
-            creationTimeout: creationTimeout,
+            requestTimeout: requestTimeout,
             logger: logger,
             on: $0
         )) })

@@ -141,21 +141,18 @@ final class ConnectionPoolTests: XCTestCase {
         let pool = EventLoopConnectionPool(
             source: foo,
             maxConnections: 1,
-            creationTimeout: .seconds(1),
+            requestTimeout: .milliseconds(100),
             on: self.eventLoopGroup.next()
         )
         defer { try! pool.close().wait() }
         _ = pool.requestConnection()
         let start = Date()
         let a = pool.requestConnection()
-        do {
-            _ = try a.wait()
-            XCTFail("Connection should have deadlocked and thrown ConnectionPoolError.connectionCreateTimeout")
-        } catch {
+        XCTAssertThrowsError(try a.wait(), "Connection should have deadlocked and thrown ConnectionPoolTimeoutError.connectionRequestTimeout") { (error) in
             let interval = Date().timeIntervalSince(start)
-            XCTAssertGreaterThan(interval, 1)
-            XCTAssertLessThan(interval, 2)
-            XCTAssertEqual(error as? ConnectionPoolError, ConnectionPoolError.connectionCreateTimeout)
+            XCTAssertGreaterThan(interval, 0.1)
+            XCTAssertLessThan(interval, 0.2)
+            XCTAssertEqual(error as? ConnectionPoolTimeoutError, ConnectionPoolTimeoutError.connectionRequestTimeout)
         }
     }
 

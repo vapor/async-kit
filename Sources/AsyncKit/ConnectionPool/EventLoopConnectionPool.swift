@@ -26,8 +26,8 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     /// Max connections for this storage.
     private let maxConnections: Int
     
-    /// Timeout for creating a new connection.
-    private let creationTimeout: TimeAmount
+    /// Timeout for requesting a new connection.
+    private let requestTimeout: TimeAmount
     
     /// This pool's event loop.
     public let eventLoop: EventLoop
@@ -41,7 +41,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     
     /// All requests for a connection that were unable to be fulfilled
     /// due to max connection limit having been reached.
-    private var waiters: CircularBuffer<(Logger, EventLoopPromise<Source.Connection>, UUID)>
+    private var waiters: CircularBuffer<(Logger, EventLoopPromise<Source.Connection>)>
     
     /// If `true`, this storage has been shutdown.
     private var didShutdown: Bool
@@ -60,18 +60,20 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     ///     - source: Creates new connections when needed.
     ///     - maxConnections: Limits the number of connections that can be open.
     ///                       Defaults to 1.
+    ///     - requestTimeout: Timeout for requesting a new connection.
+    ///                       Defaults to 10 seconds.
     ///     - logger: For lifecycle logs.
     ///     - on: Event loop.
     public init(
         source: Source,
         maxConnections: Int,
-        creationTimeout: TimeAmount = .seconds(10),
+        requestTimeout: TimeAmount = .seconds(10),
         logger: Logger = .init(label: "codes.vapor.pool"),
         on eventLoop: EventLoop
     ) {
         self.source = source
         self.maxConnections = maxConnections
-        self.creationTimeout = creationTimeout
+        self.requestTimeout = requestTimeout
         self.logger = logger
         self.eventLoop = eventLoop
         self.available = .init(initialCapacity: maxConnections)
@@ -204,18 +206,16 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
             // connections are exhausted, we must wait for one to be returned
             logger.debug("Connection pool exhausted on this event loop, adding request to waitlist")
             let promise = eventLoop.makePromise(of: Source.Connection.self)
-            let uuid = UUID()
-            self.waiters.append((logger, promise, uuid))
+            self.waiters.append((logger, promise))
             
-            let task = eventLoop.scheduleTask(in: self.creationTimeout) { [weak self, logger, promise] in
-                logger.error("Connection creation timed out. This might indicate a connection deadlock in your application.")
-                if let idx = self?.waiters.firstIndex(where: { $0.2 == uuid }) {
+            let task = eventLoop.scheduleTask(in: self.requestTimeout) { [weak self, logger, promise] in
+                logger.error("Connection request timed out. This might indicate a connection deadlock in your application.")
+                if let idx = self?.waiters.firstIndex(where: { let p = $0.1; return p.futureResult === promise.futureResult }) {
                     self?.waiters.remove(at: idx)
                 }
-                promise.fail(ConnectionPoolError.connectionCreateTimeout)
+                promise.fail(ConnectionPoolTimeoutError.connectionRequestTimeout)
             }
             
-            // return waiter
             return promise.futureResult.always { _ in task.cancel() }
         }
     }
@@ -263,7 +263,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
 
         // now that we know a new connection is available, we should
         // take this chance to fulfill one of the waiters
-        let waiter: (Logger, EventLoopPromise<Source.Connection>, UUID)?
+        let waiter: (Logger, EventLoopPromise<Source.Connection>)?
         if !self.waiters.isEmpty {
             waiter = self.waiters.removeFirst()
         } else {
@@ -271,7 +271,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
         }
 
         // if there is a waiter, request a connection for it
-        if let (logger, promise, _) = waiter {
+        if let (logger, promise) = waiter {
             logger.debug("Fulfilling connection waitlist request")
             self.requestConnection(
                 logger: logger
@@ -309,7 +309,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
             }
         }.flatten(on: self.eventLoop).map {
             // inform any waiters that they will never be receiving a connection
-            while let (_, promise, _) = self.waiters.popFirst() {
+            while let (_, promise) = self.waiters.popFirst() {
                 promise.fail(ConnectionPoolError.shutdown)
             }
             // reset any variables to free up memory
