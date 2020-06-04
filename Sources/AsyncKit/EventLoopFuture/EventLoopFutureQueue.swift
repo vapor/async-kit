@@ -35,8 +35,6 @@ public final class EventLoopFutureQueue {
             case let .previousError(error):
                 if let sub = error as? ContinueError {
                     return sub.description
-                } else if let convertible = error as? CustomStringConvertible {
-                    return "previousError(\(convertible.description))"
                 } else {
                     return "previousError(\(error))"
                 }
