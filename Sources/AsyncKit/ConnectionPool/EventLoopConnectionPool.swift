@@ -1,5 +1,7 @@
 import struct NIO.CircularBuffer
+import struct NIO.TimeAmount
 import struct Logging.Logger
+import struct Foundation.UUID
 
 /// Holds a collection of active connections that can be requested and later released
 /// back into the pool.
@@ -23,6 +25,9 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     
     /// Max connections for this storage.
     private let maxConnections: Int
+    
+    /// Timeout for requesting a new connection.
+    private let requestTimeout: TimeAmount
     
     /// This pool's event loop.
     public let eventLoop: EventLoop
@@ -55,16 +60,20 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     ///     - source: Creates new connections when needed.
     ///     - maxConnections: Limits the number of connections that can be open.
     ///                       Defaults to 1.
+    ///     - requestTimeout: Timeout for requesting a new connection.
+    ///                       Defaults to 10 seconds.
     ///     - logger: For lifecycle logs.
     ///     - on: Event loop.
     public init(
         source: Source,
         maxConnections: Int,
+        requestTimeout: TimeAmount = .seconds(10),
         logger: Logger = .init(label: "codes.vapor.pool"),
         on eventLoop: EventLoop
     ) {
         self.source = source
         self.maxConnections = maxConnections
+        self.requestTimeout = requestTimeout
         self.logger = logger
         self.eventLoop = eventLoop
         self.available = .init(initialCapacity: maxConnections)
@@ -198,8 +207,17 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
             logger.debug("Connection pool exhausted on this event loop, adding request to waitlist")
             let promise = eventLoop.makePromise(of: Source.Connection.self)
             self.waiters.append((logger, promise))
-            // return waiter
-            return promise.futureResult
+            
+            let task = eventLoop.scheduleTask(in: self.requestTimeout) { [weak self] in
+                guard let self = self else { return }
+                logger.error("Connection request timed out. This might indicate a connection deadlock in your application.")
+                if let idx = self.waiters.firstIndex(where: { _, p in return p.futureResult === promise.futureResult }) {
+                    self.waiters.remove(at: idx)
+                }
+                promise.fail(ConnectionPoolTimeoutError.connectionRequestTimeout)
+            }
+            
+            return promise.futureResult.always { _ in task.cancel() }
         }
     }
     

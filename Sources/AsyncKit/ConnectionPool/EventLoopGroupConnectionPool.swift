@@ -1,4 +1,5 @@
 import struct Logging.Logger
+import struct NIO.TimeAmount
 import class NIOConcurrencyHelpers.Lock
 import Dispatch
 
@@ -53,11 +54,14 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
     ///     - source: Creates new connections when needed.
     ///     - maxConnectionsPerEventLoop: Limits the number of connections that can be open per event loop.
     ///                                   Defaults to 1.
+    ///     - requestTimeout: Timeout for requesting a new connection.
+    ///                       Defaults to 10 seconds.
     ///     - logger: For lifecycle logs.
     ///     - on: Event loop group.
     public init(
         source: Source,
         maxConnectionsPerEventLoop: Int = 1,
+        requestTimeout: TimeAmount = .seconds(10),
         logger: Logger = .init(label: "codes.vapor.pool"),
         on eventLoopGroup: EventLoopGroup
     ) {
@@ -70,6 +74,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
         self.storage = .init(uniqueKeysWithValues: eventLoopGroup.makeIterator().map { ($0.key, .init(
             source: source,
             maxConnections: maxConnectionsPerEventLoop,
+            requestTimeout: requestTimeout,
             logger: logger,
             on: $0
         )) })

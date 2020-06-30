@@ -134,6 +134,27 @@ final class ConnectionPoolTests: XCTestCase {
             // pass
         }
     }
+    
+    // https://github.com/vapor/async-kit/issues/63
+    func testDeadlock() {
+        let foo = FooDatabase()
+        let pool = EventLoopConnectionPool(
+            source: foo,
+            maxConnections: 1,
+            requestTimeout: .milliseconds(100),
+            on: self.eventLoopGroup.next()
+        )
+        defer { try! pool.close().wait() }
+        _ = pool.requestConnection()
+        let start = Date()
+        let a = pool.requestConnection()
+        XCTAssertThrowsError(try a.wait(), "Connection should have deadlocked and thrown ConnectionPoolTimeoutError.connectionRequestTimeout") { (error) in
+            let interval = Date().timeIntervalSince(start)
+            XCTAssertGreaterThan(interval, 0.1)
+            XCTAssertLessThan(interval, 0.2)
+            XCTAssertEqual(error as? ConnectionPoolTimeoutError, ConnectionPoolTimeoutError.connectionRequestTimeout)
+        }
+    }
 
     func testPerformance() {
         guard performance(expected: 0.088) else { return }
