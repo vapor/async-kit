@@ -1,5 +1,7 @@
 import AsyncKit
 import XCTest
+import NIO
+import NIOConcurrencyHelpers
 
 final class FutureCollectionTests: XCTestCase {
     func testMapEach() throws {
@@ -58,8 +60,39 @@ final class FutureCollectionTests: XCTestCase {
         try XCTAssertEqual(times2.wait(), [2, 3, 4, 7])
         XCTAssertThrowsError(try times2Badly.wait())
     }
+    
+    func testSequencedFlatMapEach() throws {
+        struct SillyRangeError: Error {}
+        var value = 0
+        let lock = Lock()
+        let collection = eventLoop.makeSucceededFuture([1, 2, 3, 4, 5, 6, 7, 8, 9])
+        let times2 = collection.sequencedFlatMapEach { int -> EventLoopFuture<Int> in
+            lock.withLock { value = Swift.max(value, int) }
+            guard int < 5 else { Thread.sleep(forTimeInterval: 2.0); return self.eventLoop.makeFailedFuture(SillyRangeError()) }
+            return self.eventLoop.makeSucceededFuture(int * 2)
+        }
+        
+        XCTAssertThrowsError(try times2.wait())
+        XCTAssertLessThan(lock.withLock { value }, 6)
+    }
 
-    /// This TestCases EventLoopGroup
+    func testSequencedFlatMapEachCompact() throws {
+        struct SillyRangeError: Error {}
+        var last = ""
+        let lock = Lock()
+        let collection = self.eventLoop.makeSucceededFuture(["one", "2", "3", "not", "4", "1", "five", "^", "7"])
+        let times2 = collection.sequencedFlatMapEachCompact { val -> EventLoopFuture<Int?> in
+            guard let int = Int(val) else { return self.eventLoop.makeSucceededFuture(nil) }
+            guard int < 4 else { Thread.sleep(forTimeInterval: 2.0); return self.eventLoop.makeFailedFuture(SillyRangeError()) }
+            lock.withLock { last = val }
+            return self.eventLoop.makeSucceededFuture(int * 2)
+        }
+        
+        XCTAssertThrowsError(try times2.wait())
+        XCTAssertEqual(lock.withLock { last }, "3")
+    }
+
+    /// This test case's EventLoopGroup
     var group: EventLoopGroup!
     
     /// Returns the next EventLoop from the `group`
@@ -71,7 +104,7 @@ final class FutureCollectionTests: XCTestCase {
     /// and initializes the EventLoopGroup
     override func setUpWithError() throws {
         try super.setUpWithError()
-        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        self.group = MultiThreadedEventLoopGroup(numberOfThreads: System.coreCount)
     }
 
     /// Tears down the TestCase and
