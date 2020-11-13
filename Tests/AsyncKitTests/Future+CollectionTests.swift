@@ -76,6 +76,21 @@ final class FutureCollectionTests: XCTestCase {
         XCTAssertLessThan(lock.withLock { value }, 6)
     }
 
+    func testSequencedFlatMapVoid() throws {
+        struct SillyRangeError: Error {}
+        var value = 0
+        let lock = Lock()
+        let collection = eventLoop.makeSucceededFuture([1, 2, 3, 4, 5, 6, 7, 8, 9])
+        let times2 = collection.sequencedFlatMapEach { int -> EventLoopFuture<Void> in
+            lock.withLock { value = Swift.max(value, int) }
+            guard int < 5 else { Thread.sleep(forTimeInterval: 2.0); return self.eventLoop.makeFailedFuture(SillyRangeError()) }
+            return self.eventLoop.makeSucceededFuture(())
+        }
+        
+        XCTAssertThrowsError(try times2.wait())
+        XCTAssertLessThan(lock.withLock { value }, 6)
+    }
+
     func testSequencedFlatMapEachCompact() throws {
         struct SillyRangeError: Error {}
         var last = ""
