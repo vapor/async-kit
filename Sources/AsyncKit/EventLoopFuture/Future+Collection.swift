@@ -126,7 +126,7 @@ extension EventLoopFuture where Value: Sequence {
     ///    closure; the next future does not being executing until the previous one
     ///    has yielded a success result.
     ///
-    /// 2) No further futures will be even paritially executed if any one future
+    /// 2) No further futures will be even partially executed if any one future
     ///    returns a failure result.
     ///
     /// Neither of these are provided by the original version of the method.
