@@ -210,7 +210,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
             
             let task = eventLoop.scheduleTask(in: self.requestTimeout) { [weak self] in
                 guard let self = self else { return }
-                logger.error("Connection request timed out. This might indicate a connection deadlock in your application.")
+                logger.error("Connection request timed out. This might indicate a connection deadlock in your application. If you're running long running requests, consider increasing your connection timeout.")
                 if let idx = self.waiters.firstIndex(where: { _, p in return p.futureResult === promise.futureResult }) {
                     self.waiters.remove(at: idx)
                 }
