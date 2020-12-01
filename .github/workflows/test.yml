@@ -1,66 +1,56 @@
-name: Test Matrix
-on:
-  pull_request: 
-  push: { branches: [ master ] }
+name: test
+on: { pull_request: {} }
+
 jobs:
-  tests-linux:
-    strategy:
-      matrix:
-        runner: ['swift:5.2-xenial', 'swift:5.2-bionic',
-                 'swiftlang/swift:nightly-5.2-xenial', 'swiftlang/swift:nightly-5.2-bionic',
-                 'swiftlang/swift:nightly-5.3-xenial', 'swiftlang/swift:nightly-5.3-bionic',
-                 'swiftlang/swift:nightly-master-xenial', 'swiftlang/swift:nightly-master-bionic',
-                 'swiftlang/swift:nightly-master-focal',
-                 'swiftlang/swift:nightly-master-centos8', 'swiftlang/swift:nightly-master-amazonlinux2']
-        include:
-          - installcmd: 'apt-get -q update && apt-get -q install -y curl'
-          - { 'runner': 'swiftlang/swift:nightly-master-centos8', 'installcmd': 'true' }
-          - { 'runner': 'swiftlang/swift:nightly-master-amazonlinux2', 'installcmd': 'true' }
-    container: ${{ matrix.runner }}
-    env:
-      SWIFT_RUNNER: ${{ matrix.runner }}
+  getcidata:
     runs-on: ubuntu-latest
+    outputs:
+      environments: ${{ steps.output.outputs.environments }}
     steps:
-      - name: Install dependencies
-        run: ${{ matrix.installcmd }}
-      - name: Check out code
-        uses: actions/checkout@v2
-      - name: Run tests with Thread Sanitizer and code coverage
-        run: swift test --enable-test-discovery --sanitize=thread --enable-code-coverage
-      - name: Convert data to LCOV format and save location
+      - id: output
         run: |
-          export b=$(swift build --show-bin-path) && llvm-cov export -format lcov \
-          -instr-profile=$b/codecov/default.profdata --ignore-filename-regex='\.build/' \
-          $b/async-kitPackageTests.xctest >$(swift test --show-codecov-path).lcov
-          echo "::set-env name=CODECOV_FILE::$(swift test --show-codecov-path).lcov"
-      - name: Send to codecov.io
-        uses: codecov/codecov-action@v1.0.7
-        with:
-          file: ${{ env.CODECOV_FILE }}
-          flags: unittests
-          env_vars: SWIFT_RUNNER
-          fail_ci_if_error: true
-  tests-macos:
-    runs-on: macos-latest
+          envblob="$(curl -fsSL https://raw.githubusercontent.com/vapor/ci/main/pr-environments.json | jq -cMj '.')"
+          echo "::set-output name=environments::${envblob}"
+
+  test-asynckit:
+    needs: getcidata
+    strategy:
+      fail-fast: false
+      matrix:
+        env: ${{ fromJSON(needs.getcidata.outputs.environments) }}
+    runs-on: ${{ matrix.env.os }}
+    container: ${{ matrix.env.image }}
     env:
-      SWIFT_RUNNER: 'macOS'
-    steps:
-      - name: Select latest available Xcode
-        uses: maxim-lobanov/setup-xcode@1.0
-        with: { 'xcode-version': 'latest' }
+      SWIFT_RUNNER: ${{ format('{0}-{1}-{2}', matrix.env.os, matrix.env.toolchain, matrix.env.image) }}
+    steps: 
+      - name: Select toolchain
+        uses: maxim-lobanov/setup-xcode@v1.2.1
+        with:
+          xcode-version: ${{ matrix.env.toolchain }}
+        if: ${{ matrix.env.toolchain != '' }}
+      - name: Ensure curl's availability
+        run: apt-get update && apt-get install -y curl
+        if: ${{ matrix.env.image != '' }}
       - name: Check out code
         uses: actions/checkout@v2
       - name: Run tests with Thread Sanitizer
+        timeout-minutes: 20
         run: swift test --enable-test-discovery --sanitize=thread --enable-code-coverage
       - name: Convert data to LCOV format and save location
         run: |
-          export b=$(swift build --show-bin-path) && xcrun llvm-cov export -format lcov \
-          -instr-profile=$b/codecov/default.profdata --ignore-filename-regex='\.build/' \
-          $b/async-kitPackageTests.xctest/Contents/MacOS/async-kitPackageTests \
-          >$(swift test --show-codecov-path).lcov
-          echo "::set-env name=CODECOV_FILE::$(swift test --show-codecov-path).lcov"
+          export build=$(swift build --show-bin-path) && \
+          export subpath="$([[ $(uname -s) == "Darwin" ]] && echo "/Contents/MacOS/async-kitPackageTests" || true)" && \
+          export exc_prefix="$([[ $(uname -s) == "Darwin" ]] && echo "xcrun" || true)" && \
+          ${exc_prefix} llvm-cov export \
+              -format lcov \
+              -instr-profile=$build/codecov/default.profdata \
+              --ignore-filename-regex='\.build/' \
+              $build/async-kitPackageTests.xctest$subpath \
+              >$(swift test --show-codecov-path).lcov
+          echo "CODECOV_FILE=$(swift test --show-codecov-path).lcov" >> $GITHUB_ENV
+        shell: bash
       - name: Send to codecov.io
-        uses: codecov/codecov-action@v1.0.7
+        uses: codecov/codecov-action@v1.0.14
         with:
           file: ${{ env.CODECOV_FILE }}
           flags: unittests

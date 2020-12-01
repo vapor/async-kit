@@ -42,7 +42,7 @@ extension EventLoopFuture where Value: Sequence {
     /// Calls a closure, which returns an `EventLoopFuture`, on each element
     /// in a sequence that is wrapped by an `EventLoopFuture`.
     ///
-    ///     let users = evetnLoop.future([User(name: "Tanner", ...), ...])
+    ///     let users = eventLoop.future([User(name: "Tanner", ...), ...])
     ///     let saved = users.flatMapEach(on: eventLoop) { $0.save(on: database) }
     ///
     /// - parameters:
@@ -55,9 +55,7 @@ extension EventLoopFuture where Value: Sequence {
         on eventLoop: EventLoop,
         _ transform: @escaping (_ element: Value.Element) -> EventLoopFuture<Result>
     ) -> EventLoopFuture<[Result]> {
-        return self.flatMap { sequence -> EventLoopFuture<[Result]> in
-            return sequence.map(transform).flatten(on: eventLoop)
-        }
+        self.flatMap { .reduce(into: [], $0.map(transform), on: eventLoop) { $0.append($1) } }
     }
     
     /// Calls a closure, which returns an `EventLoopFuture<Optional>`, on each element
@@ -76,14 +74,7 @@ extension EventLoopFuture where Value: Sequence {
         on eventLoop: EventLoop,
         _ transform: @escaping (_ element: Value.Element) -> EventLoopFuture<Result?>
     ) -> EventLoopFuture<[Result]> {
-        return self.flatMap { sequence -> EventLoopFuture<[Result]> in
-            let futures = sequence.map(transform)
-            return EventLoopFuture<[Result]>.reduce(into: [], futures, on: eventLoop) { result, value in
-                if let unwrapped = value {
-                    result.append(unwrapped)
-                }
-            }
-        }
+        self.flatMap { .reduce(into: [], $0.map(transform), on: eventLoop) { res, elem in elem.map { res.append($0) } } }
     }
 
     /// Calls a closure on each element in the sequence that is wrapped by an `EventLoopFuture`.
@@ -128,4 +119,50 @@ extension EventLoopFuture where Value: Sequence {
             return try sequence.compactMap(transform)
         }
     }
+
+    /// A variant form of `flatMapEach(on:_:)` which guarantees:
+    ///
+    /// 1) Explicitly sequential execution of each future returned by the mapping
+    ///    closure; the next future does not being executing until the previous one
+    ///    has yielded a success result.
+    ///
+    /// 2) No further futures will be even partially executed if any one future
+    ///    returns a failure result.
+    ///
+    /// Neither of these are provided by the original version of the method.
+    public func sequencedFlatMapEach<Result>(_ transform: @escaping (_ element: Value.Element) -> EventLoopFuture<Result>) -> EventLoopFuture<[Result]> {
+        var results: [Result] = []
+        
+        return self.flatMap {
+            $0.reduce(self.eventLoop.future()) { fut, elem in
+                fut.flatMap { transform(elem).map { results.append($0) } }
+            }
+        }.transform(to: results)
+    }
+
+    /// An overload of `sequencedFlatMapEach(_:)` which returns a `Void` future instead
+    /// of `[Void]` when the result type of the transform closure is `Void`.
+    public func sequencedFlatMapEach(_ transform: @escaping (_ element: Value.Element) -> EventLoopFuture<Void>) -> EventLoopFuture<Void> {
+        return self.flatMap {
+            $0.reduce(self.eventLoop.future()) { fut, elem in
+                fut.flatMap { transform(elem) }
+            }
+        }
+    }
+
+    /// Variant of `sequencedFlatMapEach(_:)` which provides `compactMap()` semantics
+    /// by allowing result values to be `nil`. Such results are not included in the
+    /// output array.
+    public func sequencedFlatMapEachCompact<Result>(_ transform: @escaping (_ element: Value.Element) -> EventLoopFuture<Result?>) -> EventLoopFuture<[Result]> {
+        var results: [Result] = []
+        
+        return self.flatMap {
+            $0.reduce(self.eventLoop.future()) { fut, elem in
+                fut.flatMap { transform(elem).map {
+                    $0.map { results.append($0) }
+                } }
+            }
+        }.transform(to: results)
+    }
+    
 }
