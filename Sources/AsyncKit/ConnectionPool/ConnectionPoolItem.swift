@@ -1,5 +1,5 @@
 /// Item managed by a connection pool.
-public protocol ConnectionPoolItem: class {
+public protocol ConnectionPoolItem: AnyObject {
     /// EventLoop this connection belongs to.
     var eventLoop: EventLoop { get }
     
