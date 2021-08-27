@@ -115,6 +115,52 @@ final class FutureCollectionTests: XCTestCase {
         XCTAssertEqual(lock.withLock { last }, "3")
     }
 
+    func testELSequencedFlatMapEach() throws {
+        struct SillyRangeError: Error {}
+        var value = 0
+        let lock = Lock()
+        let collection = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        let times2 = collection.sequencedFlatMapEach(on: self.eventLoop) { int -> EventLoopFuture<Int> in
+            lock.withLock { value = Swift.max(value, int) }
+            guard int < 5 else { return self.group.spinAll(on: self.eventLoop).flatMapThrowing { throw SillyRangeError() } }
+            return self.eventLoop.makeSucceededFuture(int * 2)
+        }
+        
+        XCTAssertThrowsError(try times2.wait())
+        XCTAssertLessThan(lock.withLock { value }, 6)
+    }
+
+    func testELSequencedFlatMapVoid() throws {
+        struct SillyRangeError: Error {}
+        var value = 0
+        let lock = Lock()
+        let collection = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        let times2 = collection.sequencedFlatMapEach(on: self.eventLoop) { int -> EventLoopFuture<Void> in
+            lock.withLock { value = Swift.max(value, int) }
+            guard int < 5 else { return self.group.spinAll(on: self.eventLoop).flatMapThrowing { throw SillyRangeError() } }
+            return self.eventLoop.makeSucceededFuture(())
+        }
+        
+        XCTAssertThrowsError(try times2.wait())
+        XCTAssertLessThan(lock.withLock { value }, 6)
+    }
+
+    func testELSequencedFlatMapEachCompact() throws {
+        struct SillyRangeError: Error {}
+        var last = ""
+        let lock = Lock()
+        let collection = ["one", "2", "3", "not", "4", "1", "five", "^", "7"]
+        let times2 = collection.sequencedFlatMapEachCompact(on: self.eventLoop) { val -> EventLoopFuture<Int?> in
+            guard let int = Int(val) else { return self.eventLoop.makeSucceededFuture(nil) }
+            guard int < 4 else { return self.group.spinAll(on: self.eventLoop).flatMapThrowing { throw SillyRangeError() } }
+            lock.withLock { last = val }
+            return self.eventLoop.makeSucceededFuture(int * 2)
+        }
+        
+        XCTAssertThrowsError(try times2.wait())
+        XCTAssertEqual(lock.withLock { last }, "3")
+    }
+
     /// This test case's EventLoopGroup
     var group: EventLoopGroup!
     
