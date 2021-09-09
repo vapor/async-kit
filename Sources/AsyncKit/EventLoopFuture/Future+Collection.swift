@@ -49,7 +49,7 @@ extension EventLoopFuture where Value: Sequence {
     ///   - eventLoop: The `EventLoop` to flatten the resulting array of futures on.
     ///   - transform: The closure that each element in the sequence is passed into.
     ///   - element: The element from the sequence that you can operate on.
-    /// - returns: A new `EventLoopFuture` that wrapps the results
+    /// - returns: A new `EventLoopFuture` that wraps the results
     ///   of all the `EventLoopFuture`s returned from the closure.
     public func flatMapEach<Result>(
         on eventLoop: EventLoop,
@@ -57,7 +57,27 @@ extension EventLoopFuture where Value: Sequence {
     ) -> EventLoopFuture<[Result]> {
         self.flatMap { .reduce(into: [], $0.map(transform), on: eventLoop) { $0.append($1) } }
     }
-    
+
+    /// Calls a closure, which returns an `EventLoopFuture`, on each element
+    /// in a sequence that is wrapped by an `EventLoopFuture`. No results from
+    /// each future are expected.
+    ///
+    ///     let users = eventLoop.future([User(name: "Tanner", ...), ...])
+    ///     let saved = users.flatMapEach(on: eventLoop) { $0.save(on: database) }
+    ///
+    /// - parameters:
+    ///   - eventLoop: The `EventLoop` to flatten the resulting array of futures on.
+    ///   - transform: The closure that each element in the sequence is passed into.
+    ///   - element: The element from the sequence that you can operate on.
+    /// - returns: A new `EventLoopFuture` that completes when all the returned
+    ///   `EVentLoopFuture`s do.
+    public func flatMapEach(
+        on eventLoop: EventLoop,
+        _ transform: @escaping (_ element: Value.Element) -> EventLoopFuture<Void>
+    ) -> EventLoopFuture<Void> {
+        self.flatMap { .andAllSucceed($0.map(transform), on: eventLoop) }
+    }
+
     /// Calls a closure, which returns an `EventLoopFuture<Optional>`, on each element
     /// in a sequence that is wrapped by an `EventLoopFuture`.
     ///
@@ -68,7 +88,7 @@ extension EventLoopFuture where Value: Sequence {
     ///   - eventLoop: The `EventLoop` to flatten the resulting array of futures on.
     ///   - transform: The closure that each element in the sequence is passed into.
     ///   - element: The element from the sequence that you can operate on.
-    /// - returns: A new `EventLoopFuture` that wrapps the non-nil results
+    /// - returns: A new `EventLoopFuture` that wraps the non-nil results
     ///   of all the `EventLoopFuture`s returned from the closure.
     public func flatMapEachCompact<Result>(
         on eventLoop: EventLoop,

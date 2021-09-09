@@ -34,6 +34,18 @@ final class FutureCollectionTests: XCTestCase {
         
         try XCTAssertEqual(times2.wait(), [2, 4, 6, 8, 10, 12, 14, 16, 18])
     }
+
+    func testFlatMapEachVoid() throws {
+        let expectation = XCTestExpectation(description: "futures all succeeded")
+        expectation.assertForOverFulfill = true
+        expectation.expectedFulfillmentCount = 9
+        
+        let collection = self.eventLoop.makeSucceededFuture(1 ... 9)
+        let nothing = collection.flatMapEach(on: self.eventLoop) { _ in expectation.fulfill(); return self.eventLoop.makeSucceededVoidFuture() }
+        
+        _ = try nothing.wait()
+        XCTAssertEqual(XCTWaiter().wait(for: [expectation], timeout: 10.0), .completed)
+    }
     
     func testFlatMapEachCompact() throws {
         let collection = self.eventLoop.makeSucceededFuture(["one", "2", "3", "4", "five", "^", "7"])
