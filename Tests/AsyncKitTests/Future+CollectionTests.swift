@@ -13,17 +13,44 @@ extension EventLoopGroup {
 
 final class FutureCollectionTests: XCTestCase {
     func testMapEach() throws {
-        let collection = eventLoop.makeSucceededFuture([1, 2, 3, 4, 5, 6, 7, 8, 9])
-        let times2 = collection.mapEach { int -> Int in int * 2 }
+        let collection1 = self.eventLoop.makeSucceededFuture([1, 2, 3, 4, 5, 6, 7, 8, 9])
+        let times2 = collection1.mapEach { int -> Int in int * 2 }
         
         try XCTAssertEqual(times2.wait(), [2, 4, 6, 8, 10, 12, 14, 16, 18])
+        
+        let collection2 = self.eventLoop.makeSucceededFuture(["a", "bb", "ccc", "dddd", "eeeee"])
+        let lengths = collection2.mapEach(\.count)
+        
+        try XCTAssertEqual(lengths.wait(), [1, 2, 3, 4, 5])
+    
     }
     
-    func testCompactMapEach() throws {
-        let collection = self.eventLoop.makeSucceededFuture(["one", "2", "3", "4", "five", "^", "7"])
-        let times2 = collection.mapEachCompact(Int.init)
+    func testMapEachCompact() throws {
+        let collection1 = self.eventLoop.makeSucceededFuture(["one", "2", "3", "4", "five", "^", "7"])
+        let times2 = collection1.mapEachCompact(Int.init)
         
         try XCTAssertEqual(times2.wait(), [2, 3, 4, 7])
+        
+        let collection2 = self.eventLoop.makeSucceededFuture(["asdf", "qwer", "zxcv", ""])
+        let letters = collection2.mapEachCompact(\.first)
+        try XCTAssertEqual(letters.wait(), ["a", "q", "z"])
+    }
+    
+    func testMapEachFlat() throws {
+        let collection1 = self.eventLoop.makeSucceededFuture([[1, 2, 3], [9, 8, 7], [], [0]])
+        let flat1 = collection1.mapEachFlat { $0 }
+        
+        try XCTAssertEqual(flat1.wait(), [1, 2, 3, 9, 8, 7, 0])
+
+        let collection2 = self.eventLoop.makeSucceededFuture(["ABC", "123", "👩‍👩‍👧‍👧"])
+        let flat2 = collection2.mapEachFlat(\.utf8CString).mapEach(UInt8.init)
+        
+        try XCTAssertEqual(flat2.wait(), [
+            0x41, 0x42, 0x43, 0x00, 0x31, 0x32, 0x33, 0x00, 0xf0, 0x9f, 0x91, 0xa9,
+            0xe2, 0x80, 0x8d, 0xf0, 0x9f, 0x91, 0xa9, 0xe2, 0x80, 0x8d, 0xf0, 0x9f,
+            0x91, 0xa7, 0xe2, 0x80, 0x8d, 0xf0, 0x9f, 0x91, 0xa7, 0x00
+        ])
+
     }
     
     func testFlatMapEach() throws {
