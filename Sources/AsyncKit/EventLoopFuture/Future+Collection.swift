@@ -12,11 +12,26 @@ extension EventLoopFuture where Value: Sequence {
     /// - parameters:
     ///   - transform: The closure that each element in the sequence is passed into.
     ///   - element: The element from the sequence that you can operate on.
-    /// - returns: A new `EventLoopFuture` that wraps that sequence of transformed elements.
-    public func mapEach<Result>(_ transform: @escaping (_ element: Value.Element) -> Result) -> EventLoopFuture<[Result]> {
-        return self.map { sequence -> [Result] in
-            return sequence.map(transform)
-        }
+    /// - returns: A new `EventLoopFuture` that wraps the sequence of transformed elements.
+    public func mapEach<Result>(
+        _ transform: @escaping (_ element: Value.Element) -> Result
+    ) -> EventLoopFuture<[Result]> {
+        return self.map { $0.map(transform) }
+    }
+    
+    /// Gets the value of a key path for each element in the sequence that is wrapped by an `EventLoopFuture`.
+    ///
+    ///     let collection = eventLoop.future(["a", "bb", "ccc", "dddd", "eeeee"])
+    ///     let lengths = collection.mapEach(\.count)
+    ///     // lengths: EventLoopFuture([1, 2, 3, 4, 5])
+    ///
+    /// - parameters:
+    ///   - keyPath: The key path to access on each element in the sequence.
+    /// - returns: A new `EventLoopFuture` that wraps the sequence of key path values.
+    public func mapEach<Result>(
+        _ keyPath: KeyPath<Value.Element, Result>
+    ) -> EventLoopFuture<[Result]> {
+        return self.map { $0.map { $0[keyPath: keyPath] } }
     }
     
     /// Calls a closure, which returns an `Optional`, on each element in the sequence that is wrapped by an `EventLoopFuture`.
@@ -30,13 +45,60 @@ extension EventLoopFuture where Value: Sequence {
     /// - parameters:
     ///   - transform: The closure that each element in the sequence is passed into.
     ///   - element: The element from the sequence that you can operate on.
-    /// - returns: A new `EventLoopFuture` that wraps that sequence of transformed elements.
+    /// - returns: A new `EventLoopFuture` that wraps the sequence of transformed elements.
     public func mapEachCompact<Result>(
         _ transform: @escaping (_ element: Value.Element) -> Result?
     ) -> EventLoopFuture<[Result]> {
-        return self.map { sequence -> [Result] in
-            return sequence.compactMap(transform)
-        }
+        return self.map { $0.compactMap(transform) }
+    }
+    
+    /// Gets the optional value of a key path for each element in the sequence that is wrapped by an `EventLoopFuture`.
+    ///
+    ///     let collection = eventLoop.future(["asdf", "qwer", "zxcv", ""])
+    ///     let letters = collection.mapEachCompact(\.first)
+    ///     // letters: EventLoopFuture(["a", "q", "z"])
+    ///
+    /// - parameters:
+    ///   - keyPath: The key path to access on each element in the sequence.
+    /// - returns: A new `EventLoopFuture` that wraps the sequence of non-nil key path values.
+    public func mapEachCompact<Result>(
+        _ keyPath: KeyPath<Value.Element, Result?>
+    ) -> EventLoopFuture<[Result]> {
+        return self.map { $0.compactMap { $0[keyPath: keyPath] } }
+    }
+    
+    /// Calls a closure which returns a collection on each element in the sequence that is wrapped by an `EventLoopFuture`,
+    /// combining the results into a single result collection.
+    ///
+    ///     let collection = eventLoop.future([[1, 2, 3], [9, 8, 7], [], [0]])
+    ///     let flat = collection.mapEachFlat { $0 }
+    ///     // flat: [1, 2, 3, 9, 8, 7, 0]
+    ///     
+    /// - parameters:
+    ///   - transform: The closure that each element in the sequence is passed into.
+    ///   - element: The element from the sequence that you can operate on.
+    /// - returns: A new `EventLoopFuture` that wraps the flattened sequence of transformed elements.
+    public func mapEachFlat<ResultSegment: Sequence>(
+        _ transform: @escaping (_ element: Value.Element) -> ResultSegment
+    ) -> EventLoopFuture<[ResultSegment.Element]> {
+        return self.map { $0.flatMap(transform) }
+    }
+    
+    /// Gets the collection value of a key path for each element in the sequence that is wrapped by an `EventLoopFuture`,
+    /// combining the results into a single result collection.
+    ///
+    ///     let collection = eventLoop.future(["ABC", "👩‍👩‍👧‍👧"])
+    ///     let flat = collection.mapEachFlat(\.utf8CString)
+    ///     // flat: [65, 66, 67, 0, -16, -97, -111, -87, -30, -128, -115, -16, -97, -111, -87, -30,
+    ///     //        -128, -115, -16, -97, -111, -89, -30, -128, -115, -16, -97, -111, -89, 0]
+    ///
+    /// - parameters:
+    ///   - keyPath: The key path to access on each element in the sequence.
+    /// - returns: A new `EventLoopFuture` that wraps the flattened sequence of transformed elements.
+    public func mapEachFlat<ResultSegment: Sequence>(
+        _ keyPath: KeyPath<Value.Element, ResultSegment>
+    ) -> EventLoopFuture<[ResultSegment.Element]> {
+        return self.map { $0.flatMap { $0[keyPath: keyPath] } }
     }
     
     /// Calls a closure, which returns an `EventLoopFuture`, on each element
@@ -111,8 +173,10 @@ extension EventLoopFuture where Value: Sequence {
     /// - parameters:
     ///   - transform: The closure that each element in the sequence is passed into.
     ///   - element: The element from the sequence that you can operate on.
-    /// - returns: A new `EventLoopFuture` that wraps that sequence of transformed elements.
-    public func flatMapEachThrowing<Result>(_ transform: @escaping (_ element: Value.Element) throws -> Result) -> EventLoopFuture<[Result]> {
+    /// - returns: A new `EventLoopFuture` that wraps the sequence of transformed elements.
+    public func flatMapEachThrowing<Result>(
+        _ transform: @escaping (_ element: Value.Element) throws -> Result
+    ) -> EventLoopFuture<[Result]> {
         return self.flatMapThrowing { sequence -> [Result] in
             return try sequence.map(transform)
         }
@@ -131,7 +195,7 @@ extension EventLoopFuture where Value: Sequence {
     /// - parameters:
     ///   - transform: The closure that each element in the sequence is passed into.
     ///   - element: The element from the sequence that you can operate on.
-    /// - returns: A new `EventLoopFuture` that wraps that sequence of transformed elements.
+    /// - returns: A new `EventLoopFuture` that wraps the sequence of transformed elements.
     public func flatMapEachCompactThrowing<Result>(
         _ transform: @escaping (_ element: Value.Element) throws -> Result?
     ) -> EventLoopFuture<[Result]> {
