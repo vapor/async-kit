@@ -49,7 +49,7 @@ extension EventLoopFuture {
     
     /// Checks that the future's value (if any) returns `false` for `.isEmpty`. If the check fails, the provided error
     /// is thrown.
-    public func nonempty(orError error: @escaping @autoclosure () -> Error) -> EventLoopFuture<Value> where Value: Collection {
+    public func nonempty<E: Error>(orError error: @escaping @autoclosure () -> E) -> EventLoopFuture<Value> where Value: Collection {
         return self.guard({ !$0.isEmpty }, else: error())
     }
 
