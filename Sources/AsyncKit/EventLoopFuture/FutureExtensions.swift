@@ -90,4 +90,31 @@ extension EventLoopFuture {
         return self.nonemptyFlatMapThrowing(or: .init(), transform)
     }
 
+    /// Checks that the future's value (if any) returns `false` for `.isEmpty`. If the check fails, a new future with
+    /// the provided alternate value is returned. Otherwise, the provided normal `flatMap()` callback is invoked.
+    public func nonemptyFlatMap<NewValue>(
+        or alternate: @escaping @autoclosure () -> NewValue,
+        _ transform: @escaping (Value) -> EventLoopFuture<NewValue>
+    ) -> EventLoopFuture<NewValue> where Value: Collection {
+        return self.nonemptyFlatMap(orFlat: self.eventLoop.makeSucceededFuture(alternate()), transform)
+    }
+
+    /// Checks that the future's value (if any) returns `false` for `.isEmpty`. If the check fails, the provided
+    /// alternate future is returned. Otherwise, the provided normal `flatMap()` callback is invoked.
+    public func nonemptyFlatMap<NewValue>(
+        orFlat alternate: @escaping @autoclosure () -> EventLoopFuture<NewValue>,
+        _ transform: @escaping (Value) -> EventLoopFuture<NewValue>
+    ) -> EventLoopFuture<NewValue> where Value: Collection {
+        return self.flatMap { !$0.isEmpty ? transform($0) : alternate() }
+    }
+
+    /// Checks that the future's value (if any) returns `false` for `.isEmpty`. If the check fails, a new future with
+    /// an empty array as its value is returned. Otherwise, the provided normal `flatMap()` callback is invoked. The
+    /// callback's returned future must have a value type that is an `Array` or a `RangeReplaceableCollection`.
+    public func nonemptyFlatMap<NewValue>(
+        _ transform: @escaping (Value) -> EventLoopFuture<NewValue>
+    ) -> EventLoopFuture<NewValue> where Value: Collection, NewValue: RangeReplaceableCollection {
+        return self.nonemptyFlatMap(or: .init(), transform)
+    }
+
 }
