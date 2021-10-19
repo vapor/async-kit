@@ -21,7 +21,14 @@ final class FutureExtensionsTests: XCTestCase {
         XCTAssertEqual(value, "Hello")
         try XCTAssertThrowsError(future2.wait())
     }
-    
+
+    func testTryFutureThread() throws {
+        let future = self.eventLoop.tryFuture { Thread.current.name }
+        let name = try XCTUnwrap(future.wait())
+
+        XCTAssert(name.starts(with: "NIO-ELT"))
+    }
+
     func testNonempty() {
         try XCTAssertNoThrow(self.eventLoop.future([0]).nonempty(orError: TestError.notEqualTo1).wait())
         try XCTAssertThrowsError(self.eventLoop.future([]).nonempty(orError: TestError.notEqualTo1).wait())
