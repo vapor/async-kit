@@ -26,7 +26,7 @@ final class FutureExtensionsTests: XCTestCase {
         let future = self.eventLoop.tryFuture { Thread.current.name }
         let name = try XCTUnwrap(future.wait())
 
-        XCTAssert(name.starts(with: "NIO-ELT"))
+        XCTAssert(name.starts(with: "NIO-ELT"), "'\(name)' is not a valid NIO ELT name")
     }
 
     func testNonempty() {
