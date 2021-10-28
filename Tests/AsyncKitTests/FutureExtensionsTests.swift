@@ -21,7 +21,21 @@ final class FutureExtensionsTests: XCTestCase {
         XCTAssertEqual(value, "Hello")
         try XCTAssertThrowsError(future2.wait())
     }
-    
+
+    func testTryFutureThread() throws {
+        let future = self.eventLoop.tryFuture { Thread.current.name }
+        let name = try XCTUnwrap(future.wait())
+
+        #if swift(>=5.3)
+        XCTAssert(name.starts(with: "NIO-ELT"), "'\(name)' is not a valid NIO ELT name")
+        #else
+        // There is a known bug in Swift 5.2 and earlier that causes this result.
+        // Skip check because it's been resolved in later versions and theres
+        // not a lot we can do about it.
+        XCTAssertEqual(name, "")
+        #endif
+    }
+
     func testNonempty() {
         try XCTAssertNoThrow(self.eventLoop.future([0]).nonempty(orError: TestError.notEqualTo1).wait())
         try XCTAssertThrowsError(self.eventLoop.future([]).nonempty(orError: TestError.notEqualTo1).wait())

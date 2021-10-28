@@ -23,13 +23,8 @@ extension EventLoopGroup {
     ///
     /// - Parameter work: The potentially throwing closure to execute as a
     ///   future. If the closure throws, a failed future is returned.
-    public func tryFuture<T>(_ work: () throws -> T) -> EventLoopFuture<T> {
-        do {
-            return self.future(try work())
-        } catch {
-            return self.future(error: error)
-        }
+    public func tryFuture<T>(_ work: @escaping () throws -> T) -> EventLoopFuture<T> {
+        return self.next().submit(work)
     }
-
 }
 
