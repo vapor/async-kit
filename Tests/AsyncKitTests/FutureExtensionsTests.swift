@@ -63,6 +63,21 @@ final class FutureExtensionsTests: XCTestCase {
 
     }
     
+#if compiler(>=5.5) && canImport(_Concurrency)
+    @available(macOS 12, iOS 15, watchOS 8, tvOS 15, *)
+    func testPerformWithTask() throws {
+        @Sendable
+        func getOne() async throws -> Int {
+            return 1
+        }
+        let expectedOne = self.eventLoop.performWithTask {
+            try await getOne()
+        }
+        
+        XCTAssertEqual(try expectedOne.wait(), 1)
+    }
+#endif
+    
     /// This TestCases EventLoopGroup
     var group: EventLoopGroup!
     
