@@ -39,8 +39,8 @@ jobs:
           - latest-stable
           - latest
         include:
-          - xcode: latest
-            sanitize: '--sanitize=thread'
+          - xcode: latest-stable
+            filter: '--skip=^AsyncKitTests.EventLoopConcurrencyTests'
     runs-on: macos-11
     env:
       LOG_LEVEL: debug
@@ -53,7 +53,7 @@ jobs:
         uses: actions/checkout@v2
       - name: Run tests with code coverage and Thread Sanitizer
         run: |
-          swift test --enable-test-discovery ${{ matrix.sanitize }} --enable-code-coverage \
+          swift test --enable-test-discovery ${{ matrix.filter }} --sanitize=thread --enable-code-coverage \
             -Xlinker -rpath \
             -Xlinker $(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx
       - name: Submit coverage report to Codecov.io
