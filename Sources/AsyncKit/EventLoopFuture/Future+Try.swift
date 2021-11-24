@@ -13,7 +13,7 @@ extension EventLoopFuture {
         ///
         /// With `tryFlatMap`, the provided callback _may_ throw Errors, causing the returned `EventLoopFuture<Value>`
         /// to report failure immediately after the completion of the original `EventLoopFuture`.
-        flatMap(file: file, line: line) { [eventLoop] value in
+        return self.flatMap(file: file, line: line) { [eventLoop] value in
             do {
                 return try callback(value)
             } catch {
