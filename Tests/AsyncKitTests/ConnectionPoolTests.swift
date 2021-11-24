@@ -151,7 +151,7 @@ final class ConnectionPoolTests: XCTestCase {
         XCTAssertThrowsError(try a.wait(), "Connection should have deadlocked and thrown ConnectionPoolTimeoutError.connectionRequestTimeout") { (error) in
             let interval = Date().timeIntervalSince(start)
             XCTAssertGreaterThan(interval, 0.1)
-            XCTAssertLessThan(interval, 0.2)
+            XCTAssertLessThan(interval, 0.25)
             XCTAssertEqual(error as? ConnectionPoolTimeoutError, ConnectionPoolTimeoutError.connectionRequestTimeout)
         }
     }
@@ -361,10 +361,13 @@ private final class FooConnection: ConnectionPoolItem {
 }
 
 func performance(expected seconds: Double, name: String = #function) -> Bool {
-    guard !_isDebugAssertConfiguration() else {
+#if DEBUG
+//    guard !_isDebugAssertConfiguration() else {
         print("[PERFORMANCE] Skipping \(name) in debug build mode")
         return false
-    }
+//    }
+#else
     print("[PERFORMANCE] \(name) expected: \(seconds) seconds")
     return true
+#endif
 }
