@@ -3,26 +3,6 @@ import XCTest
 import NIO
 
 final class FutureConjunctionTests: XCTestCase {
-    var group: EventLoopGroup!
-    
-    var eventLoop: EventLoop { self.group.next() }
-        
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 2)
-    }
-
-    override func tearDownWithError() throws {
-        try self.group.syncShutdownGracefully()
-        self.group = nil
-        try super.tearDownWithError()
-    }
-
-    override class func setUp() {
-        super.setUp()
-        XCTAssertTrue(isLoggingConfigured)
-    }
-    
     func testTrivialStrictMapCorrectness() throws {
         XCTAssertNotNil(strictMap(()) { $0 })
         XCTAssertNil(strictMap(Void?.none) { _ in () })
@@ -55,5 +35,24 @@ final class FutureConjunctionTests: XCTestCase {
         XCTAssertEqual(result.0, "string value")
         XCTAssertEqual(result.1, Int.min)
         XCTAssertEqual(result.2, true)
+    }
+
+    var group: EventLoopGroup!
+    var eventLoop: EventLoop { self.group.next() }
+
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+    }
+
+    override func tearDownWithError() throws {
+        try self.group.syncShutdownGracefully()
+        self.group = nil
+        try super.tearDownWithError()
+    }
+
+    override class func setUp() {
+        super.setUp()
+        XCTAssertTrue(isLoggingConfigured)
     }
 }

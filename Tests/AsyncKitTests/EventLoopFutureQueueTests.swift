@@ -189,23 +189,14 @@ final class EventLoopFutureQueueTests: XCTestCase {
         XCTAssertEqual(error.description, "previousError(nope)")
     }
 
-    /// This TestCases EventLoopGroup
     var group: EventLoopGroup!
+    var eventLoop: EventLoop { self.group.next() }
 
-    /// Returns the next EventLoop from the `group`
-    var eventLoop: EventLoop {
-        return self.group.next()
-    }
-
-    /// Sets up the TestCase for use
-    /// and initializes the EventLoopGroup
     override func setUpWithError() throws {
         try super.setUpWithError()
         self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
     }
 
-    /// Tears down the TestCase and
-    /// shuts down the EventLoopGroup
     override func tearDownWithError() throws {
         try self.group.syncShutdownGracefully()
         self.group = nil
