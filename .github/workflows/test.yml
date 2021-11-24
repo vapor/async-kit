@@ -2,57 +2,64 @@ name: test
 on: { pull_request: {} }
 
 jobs:
-  getcidata:
-    runs-on: ubuntu-latest
-    outputs:
-      environments: ${{ steps.output.outputs.environments }}
-    steps:
-      - id: output
-        run: |
-          envblob="$(curl -fsSL https://raw.githubusercontent.com/vapor/ci/main/pr-environments.json | jq -cMj '.')"
-          echo "::set-output name=environments::${envblob}"
-
-  test-asynckit:
-    needs: getcidata
+  linux-all:
     strategy:
       fail-fast: false
       matrix:
-        env: ${{ fromJSON(needs.getcidata.outputs.environments) }}
-    runs-on: ${{ matrix.env.os }}
-    container: ${{ matrix.env.image }}
+        swiftver:
+          - swift:5.2
+          - swift:5.3
+          - swift:5.4
+          - swift:5.5
+          - swiftlang/swift:nightly-main
+        swiftos:
+          - focal
+    container: ${{ format('{0}-{1}', matrix.swiftver, matrix.swiftos) }}
+    runs-on: ubuntu-latest
     env:
-      SWIFT_RUNNER: ${{ format('{0}-{1}-{2}', matrix.env.os, matrix.env.toolchain, matrix.env.image) }}
-    steps: 
-      - name: Select toolchain
-        uses: maxim-lobanov/setup-xcode@v1.2.1
-        with:
-          xcode-version: ${{ matrix.env.toolchain }}
-        if: ${{ matrix.env.toolchain != '' }}
-      - name: Ensure curl's availability
-        run: apt-get update && apt-get install -y curl
-        if: ${{ matrix.env.image != '' }}
-      - name: Check out code
+      LOG_LEVEL: debug
+    steps:
+      - name: Check out package
         uses: actions/checkout@v2
-      - name: Run tests with Thread Sanitizer
-        timeout-minutes: 20
+      - name: Run tests with code coverage and Thread Sanitizer
         run: swift test --enable-test-discovery --sanitize=thread --enable-code-coverage
-      - name: Convert data to LCOV format and save location
-        run: |
-          export build=$(swift build --show-bin-path) && \
-          export subpath="$([[ $(uname -s) == "Darwin" ]] && echo "/Contents/MacOS/async-kitPackageTests" || true)" && \
-          export exc_prefix="$([[ $(uname -s) == "Darwin" ]] && echo "xcrun" || true)" && \
-          ${exc_prefix} llvm-cov export \
-              -format lcov \
-              -instr-profile=$build/codecov/default.profdata \
-              --ignore-filename-regex='\.build/' \
-              $build/async-kitPackageTests.xctest$subpath \
-              >$(swift test --show-codecov-path).lcov
-          echo "CODECOV_FILE=$(swift test --show-codecov-path).lcov" >> $GITHUB_ENV
-        shell: bash
-      - name: Send to codecov.io
-        uses: codecov/codecov-action@v1.0.14
+      - name: Submit coverage report to Codecov.io
+        uses: vapor/swift-codecov-action@v0.1.1
         with:
-          file: ${{ env.CODECOV_FILE }}
-          flags: unittests
-          env_vars: SWIFT_RUNNER
-          fail_ci_if_error: true
+          cc_flags: 'unittests'
+          cc_env_vars: 'SWIFT_VERSION,SWIFT_PLATFORM,RUNNER_OS,RUNNER_ARCH'
+          cc_fail_ci_if_error: true
+          cc_verbose: true
+
+  macos-all:
+    strategy:
+      fail-fast: false
+      matrix:
+        xcode:
+          - latest-stable
+          - latest
+        include:
+          - xcode: latest
+            sanitize: '--sanitize=thread'
+    runs-on: macos-11
+    env:
+      LOG_LEVEL: debug
+    steps:
+      - name: Select latest available Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: ${{ matrix.xcode }}
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Run tests with code coverage and Thread Sanitizer
+        run: |
+          swift test --enable-test-discovery ${{ matrix.sanitize }} --enable-code-coverage \
+            -Xlinker -rpath \
+            -Xlinker $(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.5/macosx
+      - name: Submit coverage report to Codecov.io
+        uses: vapor/swift-codecov-action@v0.1.1
+        with:
+          cc_flags: 'unittests'
+          cc_env_vars: 'MD_APPLE_SDK_ROOT,RUNNER_OS,RUNNER_ARCH'
+          cc_fail_ci_if_error: true
+          cc_verbose: true
