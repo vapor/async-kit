@@ -133,23 +133,14 @@ final class FutureOperatorTests: XCTestCase {
         XCTAssertEqual(try ~future1.wait(), 0b11110000)
     }
     
-    /// This TestCases EventLoopGroup
     var group: EventLoopGroup!
-    
-    /// Returns the next EventLoop from the `group`
-    var eventLoop: EventLoop {
-        return self.group.next()
-    }
-    
-    /// Sets up the TestCase for use
-    /// and initializes the EventLoopGroup
+    var eventLoop: EventLoop { self.group.next() }
+
     override func setUpWithError() throws {
         try super.setUpWithError()
         self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
     }
 
-    /// Tears down the TestCase and
-    /// shuts down the EventLoopGroup
     override func tearDownWithError() throws {
         try self.group.syncShutdownGracefully()
         self.group = nil

@@ -1,7 +1,7 @@
 import AsyncKit
 import XCTest
 
-final class FlattenTests: XCTestCase {
+final class CollectionFlattenTests: XCTestCase {
     func testELFlatten()throws {
         let futures = [
             self.eventLoop.makeSucceededFuture(1),
@@ -45,23 +45,14 @@ final class FlattenTests: XCTestCase {
         try XCTAssertEqual(flattened.wait(), [1, 2, 3, 4, 5, 6, 7])
     }
     
-    /// This TestCases EventLoopGroup
     var group: EventLoopGroup!
-    
-    /// Returns the next EventLoop from the `group`
-    var eventLoop: EventLoop {
-        return self.group.next()
-    }
-    
-    /// Sets up the TestCase for use
-    /// and initializes the EventLoopGroup
+    var eventLoop: EventLoop { self.group.next() }
+
     override func setUpWithError() throws {
         try super.setUpWithError()
         self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
     }
 
-    /// Tears down the TestCase and
-    /// shuts down the EventLoopGroup
     override func tearDownWithError() throws {
         try self.group.syncShutdownGracefully()
         self.group = nil

@@ -2,10 +2,6 @@ import AsyncKit
 import XCTest
 
 final class FutureOptionalTests: XCTestCase {
-    private enum NIOError: Error {
-        case testError
-    }
-    
     func testOptionalMap() throws {
         let future = self.eventLoop.makeSucceededFuture(Optional<Int>.some(1))
         let null = self.eventLoop.makeSucceededFuture(Optional<Int>.none)
@@ -24,7 +20,7 @@ final class FutureOptionalTests: XCTestCase {
         
         let times2 = future.optionalFlatMapThrowing { $0 * 2 }
         let null2 = future.optionalFlatMapThrowing { return $0 % 2 == 0 ? $0 : nil }
-        let error = future.optionalFlatMapThrowing { _ in throw NIOError.testError}
+        let error = future.optionalFlatMapThrowing { _ in throw TestError.generic }
         
         try XCTAssertEqual(2, times2.wait())
         try XCTAssertEqual(nil, null2.wait())
@@ -49,23 +45,22 @@ final class FutureOptionalTests: XCTestCase {
         try XCTAssertEqual(nil, null2.wait())
     }
     
-    /// This TestCases EventLoopGroup
-    var group: EventLoopGroup!
-    
-    /// Returns the next EventLoop from the `group`
-    var eventLoop: EventLoop {
-        return self.group.next()
+    func multiply(_ a: Int, _ b: Int) -> EventLoopFuture<Int> {
+        return self.group.next().makeSucceededFuture(a * b)
     }
     
-    /// Sets up the TestCase for use
-    /// and initializes the EventLoopGroup
+    func multiply(_ a: Int, _ b: Int?) -> EventLoopFuture<Int?> {
+        return self.group.next().makeSucceededFuture(b == nil ? nil : a * b!)
+    }
+
+    var group: EventLoopGroup!
+    var eventLoop: EventLoop { self.group.next() }
+
     override func setUpWithError() throws {
         try super.setUpWithError()
         self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
     }
 
-    /// Tears down the TestCase and
-    /// shuts down the EventLoopGroup
     override func tearDownWithError() throws {
         try self.group.syncShutdownGracefully()
         self.group = nil
@@ -75,13 +70,5 @@ final class FutureOptionalTests: XCTestCase {
     override class func setUp() {
         super.setUp()
         XCTAssertTrue(isLoggingConfigured)
-    }
-    
-    func multiply(_ a: Int, _ b: Int) -> EventLoopFuture<Int> {
-        return self.group.next().makeSucceededFuture(a * b)
-    }
-    
-    func multiply(_ a: Int, _ b: Int?) -> EventLoopFuture<Int?> {
-        return self.group.next().makeSucceededFuture(b == nil ? nil : a * b!)
     }
 }

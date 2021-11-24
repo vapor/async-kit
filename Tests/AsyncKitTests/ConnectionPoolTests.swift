@@ -110,7 +110,7 @@ final class ConnectionPoolTests: XCTestCase {
         let pool = EventLoopConnectionPool(
             source: foo,
             maxConnections: 1,
-            on: self.eventLoopGroup.next()
+            on: self.group.next()
         )
         let _ = try pool.requestConnection().wait()
         let b = pool.requestConnection()
@@ -142,7 +142,7 @@ final class ConnectionPoolTests: XCTestCase {
             source: foo,
             maxConnections: 1,
             requestTimeout: .milliseconds(100),
-            on: self.eventLoopGroup.next()
+            on: self.group.next()
         )
         defer { try! pool.close().wait() }
         _ = pool.requestConnection()
@@ -151,7 +151,7 @@ final class ConnectionPoolTests: XCTestCase {
         XCTAssertThrowsError(try a.wait(), "Connection should have deadlocked and thrown ConnectionPoolTimeoutError.connectionRequestTimeout") { (error) in
             let interval = Date().timeIntervalSince(start)
             XCTAssertGreaterThan(interval, 0.1)
-            XCTAssertLessThan(interval, 0.2)
+            XCTAssertLessThan(interval, 0.25)
             XCTAssertEqual(error as? ConnectionPoolTimeoutError, ConnectionPoolTimeoutError.connectionRequestTimeout)
         }
     }
@@ -162,7 +162,7 @@ final class ConnectionPoolTests: XCTestCase {
         let pool = EventLoopConnectionPool(
             source: foo,
             maxConnections: 3,
-            on: self.eventLoopGroup.next()
+            on: self.group.next()
         )
 
         measure {
@@ -194,13 +194,13 @@ final class ConnectionPoolTests: XCTestCase {
         let pool = EventLoopGroupConnectionPool(
             source: foo,
             maxConnectionsPerEventLoop: 2,
-            on: self.eventLoopGroup
+            on: self.group
         )
         defer { pool.shutdown() }
 
         var futures: [EventLoopFuture<Void>] = []
 
-        var eventLoops = eventLoopGroup.makeIterator()
+        var eventLoops = group.makeIterator()
         while let eventLoop = eventLoops.next() {
             let promise = eventLoop.makePromise(of: Void.self)
             eventLoop.execute {
@@ -215,7 +215,7 @@ final class ConnectionPoolTests: XCTestCase {
             futures.append(promise.futureResult)
         }
 
-        try futures.flatten(on: eventLoopGroup.next()).wait()
+        try futures.flatten(on: group.next()).wait()
     }
     
     func testGracefulShutdownAsync() throws {
@@ -223,7 +223,7 @@ final class ConnectionPoolTests: XCTestCase {
         let pool = EventLoopGroupConnectionPool(
             source: foo,
             maxConnectionsPerEventLoop: 2,
-            on: self.eventLoopGroup
+            on: self.group
         )
         
         let expectation1 = XCTestExpectation(description: "Shutdown completion")
@@ -247,7 +247,7 @@ final class ConnectionPoolTests: XCTestCase {
         let pool = EventLoopGroupConnectionPool(
             source: foo,
             maxConnectionsPerEventLoop: 2,
-            on: self.eventLoopGroup
+            on: self.group
         )
         
         XCTAssertNoThrow(try pool.syncShutdownGracefully())
@@ -261,7 +261,7 @@ final class ConnectionPoolTests: XCTestCase {
         let pool = EventLoopGroupConnectionPool(
             source: foo,
             maxConnectionsPerEventLoop: 2,
-            on: self.eventLoopGroup
+            on: self.group
         )
         
         let connection = try pool.requestConnection().wait()
@@ -280,12 +280,12 @@ final class ConnectionPoolTests: XCTestCase {
         let pool = EventLoopGroupConnectionPool(
             source: foo,
             maxConnectionsPerEventLoop: 1,
-            on: self.eventLoopGroup
+            on: self.group
         )
         defer { pool.shutdown() }
         
         for _ in 0..<500 {
-            let eventLoop = self.eventLoopGroup.next()
+            let eventLoop = self.group.next()
             let a = pool.requestConnection(
                 on: eventLoop
             ).map { conn in
@@ -302,15 +302,16 @@ final class ConnectionPoolTests: XCTestCase {
         }
     }
 
-    var eventLoopGroup: EventLoopGroup!
+    var group: EventLoopGroup!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
-        self.eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 4)
+        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
     }
 
     override func tearDownWithError() throws {
-        try self.eventLoopGroup.syncShutdownGracefully()
+        try self.group.syncShutdownGracefully()
+        self.group = nil
         try super.tearDownWithError()
     }
 
@@ -360,10 +361,13 @@ private final class FooConnection: ConnectionPoolItem {
 }
 
 func performance(expected seconds: Double, name: String = #function) -> Bool {
-    guard !_isDebugAssertConfiguration() else {
+#if DEBUG
+//    guard !_isDebugAssertConfiguration() else {
         print("[PERFORMANCE] Skipping \(name) in debug build mode")
         return false
-    }
+//    }
+#else
     print("[PERFORMANCE] \(name) expected: \(seconds) seconds")
     return true
+#endif
 }
