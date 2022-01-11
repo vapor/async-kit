@@ -1,7 +1,10 @@
 import NIO
 
 extension EventLoopFuture {
-    public func tryFlatMap<NewValue>(file: StaticString = #file, line: UInt = #line, _ callback: @escaping (Value) throws -> EventLoopFuture<NewValue>) -> EventLoopFuture<NewValue> {
+    public func tryFlatMap<NewValue>(
+        file _: StaticString = #file, line _: UInt = #line,
+        _ callback: @escaping (Value) throws -> EventLoopFuture<NewValue>
+    ) -> EventLoopFuture<NewValue> {
         /// When the current `EventLoopFuture<Value>` is fulfilled, run the provided callback,
         /// which will provide a new `EventLoopFuture`.
         ///
@@ -13,11 +16,11 @@ extension EventLoopFuture {
         ///
         /// With `tryFlatMap`, the provided callback _may_ throw Errors, causing the returned `EventLoopFuture<Value>`
         /// to report failure immediately after the completion of the original `EventLoopFuture`.
-        return self.flatMap(file: file, line: line) { [eventLoop] value in
+        return self.flatMap() { [eventLoop] value in
             do {
                 return try callback(value)
             } catch {
-                return eventLoop.makeFailedFuture(error, file: file, line: line)
+                return eventLoop.makeFailedFuture(error)
             }
         }
     }
