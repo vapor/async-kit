@@ -2,6 +2,9 @@ import struct NIO.CircularBuffer
 import struct NIO.TimeAmount
 import struct Logging.Logger
 import struct Foundation.UUID
+import struct Foundation.TimeInterval
+import struct Foundation.Date
+import class NIOConcurrencyHelpers.Lock
 
 /// Holds a collection of active connections that can be requested and later released
 /// back into the pool.
@@ -32,12 +35,18 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     /// This pool's event loop.
     public let eventLoop: EventLoop
     
+    // How often to check for stale connections
+    public let pruneInterval: TimeInterval
+    
+    // The max time a connection can remain unused
+    public let maxIdleTimeBeforePrunning: TimeInterval
+    
     /// All currently available connections.
     /// - note: These connections may have closed since last use.
-    private var available: CircularBuffer<Source.Connection>
+    public private(set) var available: CircularBuffer<Source.Connection>
     
     /// Current active connection count.
-    private var activeConnections: Int
+    public private(set) var activeConnections: Int
     
     /// All requests for a connection that were unable to be fulfilled
     /// due to max connection limit having been reached.
@@ -48,7 +57,9 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     
     /// For lifecycle logs.
     public let logger: Logger
-
+    
+    private let lock: Lock
+    
     /// Creates a new `EventLoopConnectionPool`.
     ///
     ///     let pool = EventLoopConnectionPool(...)
@@ -69,7 +80,9 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
         maxConnections: Int,
         requestTimeout: TimeAmount = .seconds(10),
         logger: Logger = .init(label: "codes.vapor.pool"),
-        on eventLoop: EventLoop
+        on eventLoop: EventLoop,
+        pruneInterval: TimeInterval = 60,
+        maxIdleTimeBeforePrunning: TimeInterval = 120
     ) {
         self.source = source
         self.maxConnections = maxConnections
@@ -80,6 +93,11 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
         self.activeConnections = 0
         self.waiters = .init()
         self.didShutdown = false
+        self.pruneInterval = pruneInterval
+        self.maxIdleTimeBeforePrunning = maxIdleTimeBeforePrunning
+        self.lock = .init()
+        
+        self.pruneConnections()
     }
     
     /// Fetches a pooled connection for the lifetime of the closure.
@@ -184,7 +202,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
         }
 
         // iterate over available connections
-        while let conn = self.available.popFirst() {
+        while let conn = self.lock.withLock { self.available.popFirst() } {
             // check if it is still open
             if !conn.isClosed {
                 // connection is still open, we can return it directly
@@ -277,6 +295,30 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
             self.requestConnection(
                 logger: logger
             ).cascade(to: promise)
+        }
+    }
+    
+    
+    private func pruneConnections() {
+        // dispatch to event loop thread if necessary
+        guard self.eventLoop.inEventLoop else {
+            return self.eventLoop.execute {
+                self.pruneConnections()
+            }
+        }
+
+        self.lock.withLockVoid {
+            self.available.filter{!$0.isClosed}.forEach { conn in
+                if Date().timeIntervalSince(conn.lastUsed) >= self.maxIdleTimeBeforePrunning {
+                    // the connection is too old, just releasing it
+                    logger.debug("Connection is too old, closing it")
+                    _ = conn.close()
+                }
+            }
+        }
+
+        _ = self.eventLoop.scheduleTask(in: .milliseconds(Int64(1000 * self.pruneInterval))) { [weak self] in
+            self?.pruneConnections()
         }
     }
     
