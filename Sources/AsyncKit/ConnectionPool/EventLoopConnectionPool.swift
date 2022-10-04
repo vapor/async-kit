@@ -43,7 +43,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     
     /// All currently available connections.
     /// - note: These connections may have closed since last use.
-    public private(set) var available: CircularBuffer<Source.Connection>
+    public private(set) var available: CircularBuffer<PrunableConnection>
     
     /// Current active connection count.
     public private(set) var activeConnections: Int
@@ -204,10 +204,10 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
         // iterate over available connections
         while let conn = self.lock.withLock { self.available.popFirst() } {
             // check if it is still open
-            if !conn.isClosed {
+            if !conn.originalConnection.isClosed {
                 // connection is still open, we can return it directly
                 logger.trace("Re-using available connection")
-                return eventLoop.makeSucceededFuture(conn)
+                return eventLoop.makeSucceededFuture(conn.originalConnection as! Source.Connection)
             } else {
                 // connection is closed
                 logger.debug("Pruning available connection that has closed")
@@ -278,7 +278,17 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
 
         // add this connection back to the list of available
         logger.trace("Releasing connection")
-        self.available.append(connection)
+
+        
+        let knownConnection = lock.withLock { available.first { $0.originalConnection === connection } }
+        if let knownConnection = knownConnection {
+            knownConnection.lastUsed = Date()
+            self.available.append(knownConnection)
+        } else {
+            //this is connection that we don't know yet, it was returned by a future and the client just wants to release it.
+            let newConnection = PrunableConnection(connection: connection, lastUsed: Date())
+            self.available.append(newConnection)
+        }
 
         // now that we know a new connection is available, we should
         // take this chance to fulfill one of the waiters
@@ -308,11 +318,11 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
         }
 
         self.lock.withLockVoid {
-            self.available.filter{!$0.isClosed}.forEach { conn in
+            self.available.filter{!$0.originalConnection.isClosed}.forEach { conn in
                 if Date().timeIntervalSince(conn.lastUsed) >= self.maxIdleTimeBeforePrunning {
                     // the connection is too old, just releasing it
                     logger.debug("Connection is too old, closing it")
-                    _ = conn.close()
+                    _ = conn.originalConnection.close()
                 }
             }
         }
@@ -347,7 +357,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
 
         // no locks needed as this can only happen once
         return self.available.map {
-            $0.close().map {
+            $0.originalConnection.close().map {
                 self.activeConnections -= 1
             }
         }.flatten(on: self.eventLoop).map {
@@ -364,5 +374,19 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
         if !self.didShutdown {
             assertionFailure("ConnectionPoolStorage.shutdown() was not called before deinit.")
         }
+    }
+}
+
+public final class PrunableConnection {
+    var originalConnection: ConnectionPoolItem
+    var lastUsed: Date
+    
+    init(connection: ConnectionPoolItem, lastUsed: Date) {
+        self.originalConnection = connection
+        self.lastUsed = lastUsed
+    }
+    
+    public var isClosed: Bool {
+        return self.originalConnection.isClosed
     }
 }

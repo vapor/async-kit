@@ -10,6 +10,5 @@ public protocol ConnectionPoolItem: AnyObject {
     
     /// Closes this connection.
     func close() -> EventLoopFuture<Void>
-    
-    var lastUsed: Date { get set }
 }
+
