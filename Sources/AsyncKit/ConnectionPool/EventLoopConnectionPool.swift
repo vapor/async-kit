@@ -46,7 +46,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     private var available: CircularBuffer<PrunableConnection>
     
     /// Current active connection count.
-    private var activeConnections: Int
+    public private(set) var activeConnections: Int
     
     /// All requests for a connection that were unable to be fulfilled
     /// due to max connection limit having been reached.
