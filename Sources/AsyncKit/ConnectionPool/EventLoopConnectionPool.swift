@@ -43,10 +43,10 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     
     /// All currently available connections.
     /// - note: These connections may have closed since last use.
-    public private(set) var available: CircularBuffer<PrunableConnection>
+    private var available: CircularBuffer<PrunableConnection>
     
     /// Current active connection count.
-    public private(set) var activeConnections: Int
+    private var activeConnections: Int
     
     /// All requests for a connection that were unable to be fulfilled
     /// due to max connection limit having been reached.
@@ -330,6 +330,10 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
         _ = self.eventLoop.scheduleTask(in: .milliseconds(Int64(1000 * self.pruneInterval))) { [weak self] in
             self?.pruneConnections()
         }
+    }
+    
+    public var openedConnections: Int {
+        return self.available.filter{!$0.isClosed}.count
     }
     
     /// Closes the connection pool.

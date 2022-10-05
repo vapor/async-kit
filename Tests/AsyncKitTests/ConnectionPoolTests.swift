@@ -81,12 +81,11 @@ final class ConnectionPoolTests: XCTestCase {
         pool.releaseConnection(anotherConnection2)
 
         try await Task.sleep(nanoseconds: UInt64(0.3 * Double(NSEC_PER_SEC)))
-        XCTAssertEqual(pool.activeConnections, 3)
-        XCTAssertEqual(pool.available.filter{!$0.isClosed}.count, 0)
+        XCTAssertEqual(pool.openedConnections, 0)
 
         let connB = try pool.requestConnection().wait()
         XCTAssert(connA !== connB)
-        XCTAssertEqual(pool.activeConnections, 1)
+        XCTAssertEqual(pool.openedConnections, 1)
     }
     
     func testFIFOWaiters() throws {
