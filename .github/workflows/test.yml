@@ -1,5 +1,7 @@
 name: test
-on: { pull_request: {} }
+on:
+  pull_request: { branches: ['*'] }
+  push: { branches: ['main'] }
 
 jobs:
   unit-tests:
@@ -7,3 +9,4 @@ jobs:
      with:
        with_coverage: true
        with_tsan: true
+       with_public_api_check: ${{ github.event_name == 'pull_request' }}
