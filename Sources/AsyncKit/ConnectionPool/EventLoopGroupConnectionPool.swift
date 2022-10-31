@@ -1,4 +1,5 @@
 import struct Logging.Logger
+import NIOConcurrencyHelpers
 import struct NIO.TimeAmount
 import struct NIOConcurrencyHelpers.NIOLock
 import Dispatch
