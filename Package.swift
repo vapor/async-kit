@@ -19,10 +19,10 @@ let package = Package(
         .target(name: "AsyncKit", dependencies: [
             .product(name: "Logging", package: "swift-log"),
             .product(name: "NIO", package: "swift-nio"),
-            .product(name: "Atomics", package: "swift-atomics"),
         ]),
         .testTarget(name: "AsyncKitTests", dependencies: [
-            .target(name: "AsyncKit")
+            .product(name: "Atomics", package: "swift-atomics"),
+            .target(name: "AsyncKit"),
         ]),
     ]
 )
