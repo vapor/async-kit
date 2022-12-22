@@ -14,7 +14,7 @@ extension EventLoop {
     /// - returns: An `EventLoopFuture` which is completed when `body` finishes. On
     ///   success the future has the result returned by `body`; if `body` throws an
     ///   error, the future is failed with that error.
-    @available(macOS 10.15, iOS 15, watchOS 8, tvOS 15, *)
+    @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
     @inlinable
     public func performWithTask<Value>(
         _ body: @escaping @Sendable () async throws -> Value
