@@ -1,27 +1,14 @@
-#if compiler(>=5.5) && canImport(_Concurrency)
 import XCTest
 import AsyncKit
 
 @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
 final class EventLoopConcurrencyTests: XCTestCase {
-    func testGroupPerformWithTask() throws {
+    func testGroupMakeFutureWithTask() throws {
         @Sendable
         func getOne() async throws -> Int {
             return 1
         }
-        let expectedOne = self.group.performWithTask {
-            try await getOne()
-        }
-        
-        XCTAssertEqual(try expectedOne.wait(), 1)
-    }
-
-    func testLoopPerformWithTask() throws {
-        @Sendable
-        func getOne() async throws -> Int {
-            return 1
-        }
-        let expectedOne = self.eventLoop.performWithTask {
+        let expectedOne = self.group.makeFutureWithTask {
             try await getOne()
         }
         
@@ -29,7 +16,7 @@ final class EventLoopConcurrencyTests: XCTestCase {
     }
 
     var group: EventLoopGroup!
-    var eventLoop: EventLoop { self.group.next() }
+    var eventLoop: EventLoop { self.group.any() }
 
     override func setUpWithError() throws {
         try super.setUpWithError()
@@ -48,4 +35,3 @@ final class EventLoopConcurrencyTests: XCTestCase {
     }
 }
 
-#endif

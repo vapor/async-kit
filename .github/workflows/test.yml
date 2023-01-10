@@ -9,4 +9,4 @@ jobs:
      with:
        with_coverage: true
        with_tsan: true
-       with_public_api_check: ${{ github.event_name == 'pull_request' }}5427504 (Update CI)
+       with_public_api_check: ${{ github.event_name == 'pull_request' }}

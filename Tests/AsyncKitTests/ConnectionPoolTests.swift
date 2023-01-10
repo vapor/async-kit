@@ -111,7 +111,7 @@ final class ConnectionPoolTests: XCTestCase {
         let pool = EventLoopConnectionPool(
             source: foo,
             maxConnections: 1,
-            on: self.group.next()
+            on: self.group.any()
         )
         let _ = try pool.requestConnection().wait()
         let b = pool.requestConnection()
@@ -143,7 +143,7 @@ final class ConnectionPoolTests: XCTestCase {
             source: foo,
             maxConnections: 1,
             requestTimeout: .milliseconds(100),
-            on: self.group.next()
+            on: self.group.any()
         )
         defer { try! pool.close().wait() }
         _ = pool.requestConnection()
@@ -163,7 +163,7 @@ final class ConnectionPoolTests: XCTestCase {
         let pool = EventLoopConnectionPool(
             source: foo,
             maxConnections: 3,
-            on: self.group.next()
+            on: self.group.any()
         )
 
         measure {
@@ -216,7 +216,7 @@ final class ConnectionPoolTests: XCTestCase {
             futures.append(promise.futureResult)
         }
 
-        try futures.flatten(on: group.next()).wait()
+        try futures.flatten(on: group.any()).wait()
     }
     
     func testGracefulShutdownAsync() throws {
@@ -286,7 +286,7 @@ final class ConnectionPoolTests: XCTestCase {
         defer { pool.shutdown() }
         
         for _ in 0..<500 {
-            let eventLoop = self.group.next()
+            let eventLoop = self.group.any()
             let a = pool.requestConnection(
                 on: eventLoop
             ).map { conn in

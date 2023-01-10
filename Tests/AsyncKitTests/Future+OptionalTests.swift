@@ -46,15 +46,15 @@ final class FutureOptionalTests: XCTestCase {
     }
     
     func multiply(_ a: Int, _ b: Int) -> EventLoopFuture<Int> {
-        return self.group.next().makeSucceededFuture(a * b)
+        return self.group.any().makeSucceededFuture(a * b)
     }
     
     func multiply(_ a: Int, _ b: Int?) -> EventLoopFuture<Int?> {
-        return self.group.next().makeSucceededFuture(b == nil ? nil : a * b!)
+        return self.group.any().makeSucceededFuture(b == nil ? nil : a * b!)
     }
 
     var group: EventLoopGroup!
-    var eventLoop: EventLoop { self.group.next() }
+    var eventLoop: EventLoop { self.group.any() }
 
     override func setUpWithError() throws {
         try super.setUpWithError()
