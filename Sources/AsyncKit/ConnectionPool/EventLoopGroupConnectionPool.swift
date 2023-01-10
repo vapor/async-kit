@@ -105,7 +105,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
         guard !self.lock.withLock({ self.didShutdown }) else {
             return (eventLoop ?? self.eventLoopGroup).future(error: ConnectionPoolError.shutdown)
         }
-        return self.pool(for: eventLoop ?? self.eventLoopGroup.next())
+        return self.pool(for: eventLoop ?? self.eventLoopGroup.any())
            .withConnection(logger: logger ?? self.logger, closure)
     }
     
@@ -130,7 +130,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
         guard !self.lock.withLock({ self.didShutdown }) else {
             return (eventLoop ?? self.eventLoopGroup).future(error: ConnectionPoolError.shutdown)
         }
-        return self.pool(for: eventLoop ?? self.eventLoopGroup.next())
+        return self.pool(for: eventLoop ?? self.eventLoopGroup.any())
             .requestConnection(logger: logger ?? self.logger)
     }
     
