@@ -1,4 +1,3 @@
-#if compiler(>=5.5) && canImport(_Concurrency)
 import XCTest
 import AsyncKit
 
@@ -48,4 +47,3 @@ final class EventLoopConcurrencyTests: XCTestCase {
     }
 }
 
-#endif

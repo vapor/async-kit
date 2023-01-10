@@ -1,4 +1,3 @@
-#if compiler(>=5.5) && canImport(_Concurrency)
 import NIOCore
 
 extension EventLoopGroup {
@@ -22,4 +21,3 @@ extension EventLoopGroup {
         return self.next().performWithTask(body)
     }
 }
-#endif

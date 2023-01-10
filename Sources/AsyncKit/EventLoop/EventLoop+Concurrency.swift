@@ -1,4 +1,3 @@
-#if compiler(>=5.5) && canImport(_Concurrency)
 import NIOCore
 
 extension EventLoop {
@@ -25,4 +24,3 @@ extension EventLoop {
         return promise.futureResult
     }
 }
-#endif
