@@ -1,6 +1,8 @@
 import NIOConcurrencyHelpers
 import AsyncKit
 import XCTest
+import NIOCore
+import NIOPosix
 
 final class EventLoopFutureQueueTests: XCTestCase {
     func testQueue() throws {

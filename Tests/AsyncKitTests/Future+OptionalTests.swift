@@ -1,5 +1,7 @@
 import AsyncKit
 import XCTest
+import NIOCore
+import NIOPosix
 
 final class FutureOptionalTests: XCTestCase {
     func testOptionalMap() throws {

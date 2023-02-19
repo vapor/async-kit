@@ -1,7 +1,6 @@
-import struct NIO.CircularBuffer
-import struct NIO.TimeAmount
 import struct Logging.Logger
 import struct Foundation.UUID
+import NIOCore
 
 /// Holds a collection of active connections that can be requested and later released
 /// back into the pool.

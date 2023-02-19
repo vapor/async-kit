@@ -3,6 +3,9 @@ import AsyncKit
 import XCTest
 import NIOConcurrencyHelpers
 import Logging
+import NIOCore
+import NIOPosix
+import NIOEmbedded
 
 final class ConnectionPoolTests: XCTestCase {
     func testPooling() throws {

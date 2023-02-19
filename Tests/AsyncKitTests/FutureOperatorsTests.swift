@@ -1,5 +1,7 @@
 import XCTest
 import AsyncKit
+import NIOCore
+import NIOPosix
 
 final class FutureOperatorTests: XCTestCase {
     func testAddition() throws {

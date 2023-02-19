@@ -1,5 +1,7 @@
 import AsyncKit
 import XCTest
+import NIOCore
+import NIOPosix
 
 final class EventLoopGroupFutureTests: XCTestCase {
     func testFutureVoid() throws {
