@@ -1,5 +1,7 @@
 import XCTest
 import AsyncKit
+import NIOCore
+import NIOPosix
 
 class FutureTransformTests: XCTestCase {
     func testTransforms() throws {

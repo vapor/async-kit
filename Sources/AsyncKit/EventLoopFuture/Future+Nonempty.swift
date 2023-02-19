@@ -1,3 +1,5 @@
+import NIOCore
+
 extension EventLoopFuture {
     /// Checks that the future's value (if any) returns `false` for `.isEmpty`. If the check fails, the provided error
     /// is thrown.

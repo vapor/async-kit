@@ -1,5 +1,7 @@
 import AsyncKit
 import XCTest
+import NIOCore
+import NIOPosix
 
 final class CollectionFlattenTests: XCTestCase {
     func testELFlatten()throws {
