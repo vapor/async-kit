@@ -9,5 +9,5 @@ jobs:
      uses: vapor/api-docs/.github/workflows/build-and-deploy-docs-workflow.yml@main
      secrets: inherit
      with:
-       package_name: vapor
-       modules: Vapor,XCTVapor
+       package_name: async-kit
+       modules: AsyncKit
