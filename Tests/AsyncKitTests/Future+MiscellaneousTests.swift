@@ -1,5 +1,7 @@
 import XCTest
 import AsyncKit
+import NIOCore
+import NIOPosix
 
 final class FutureMiscellaneousTests: XCTestCase {
     func testGuard() {
@@ -37,7 +39,7 @@ final class FutureMiscellaneousTests: XCTestCase {
     }
 
     var group: EventLoopGroup!
-    var eventLoop: EventLoop { self.group.next() }
+    var eventLoop: EventLoop { self.group.any() }
 
     override func setUpWithError() throws {
         try super.setUpWithError()

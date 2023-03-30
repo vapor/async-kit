@@ -1,7 +1,11 @@
+import Atomics
 import AsyncKit
 import XCTest
 import NIOConcurrencyHelpers
 import Logging
+import NIOCore
+import NIOPosix
+import NIOEmbedded
 
 final class ConnectionPoolTests: XCTestCase {
     func testPooling() throws {
@@ -18,32 +22,32 @@ final class ConnectionPoolTests: XCTestCase {
         XCTAssertEqual(connA.isClosed, false)
         let connB = try pool.requestConnection().wait()
         XCTAssertEqual(connB.isClosed, false)
-        XCTAssertEqual(foo.connectionsCreated.load(), 2)
+        XCTAssertEqual(foo.connectionsCreated.load(ordering: .relaxed), 2)
         
         // try to make a third, but pool only supports 2
         var connC: FooConnection?
         pool.requestConnection().whenSuccess { connC = $0 }
         XCTAssertNil(connC)
-        XCTAssertEqual(foo.connectionsCreated.load(), 2)
+        XCTAssertEqual(foo.connectionsCreated.load(ordering: .relaxed), 2)
         
         // release one of the connections, allowing the third to be made
         pool.releaseConnection(connB)
         XCTAssertNotNil(connC)
         XCTAssert(connC === connB)
-        XCTAssertEqual(foo.connectionsCreated.load(), 2)
+        XCTAssertEqual(foo.connectionsCreated.load(ordering: .relaxed), 2)
         
         // try to make a third again, with two active
         var connD: FooConnection?
         pool.requestConnection().whenSuccess { connD = $0 }
         XCTAssertNil(connD)
-        XCTAssertEqual(foo.connectionsCreated.load(), 2)
+        XCTAssertEqual(foo.connectionsCreated.load(ordering: .relaxed), 2)
         
         // this time, close the connection before releasing it
         try connC!.close().wait()
         pool.releaseConnection(connC!)
         XCTAssert(connD !== connB)
         XCTAssertEqual(connD?.isClosed, false)
-        XCTAssertEqual(foo.connectionsCreated.load(), 3)
+        XCTAssertEqual(foo.connectionsCreated.load(ordering: .relaxed), 3)
     }
 
     func testConnectionPrunning() async throws {
@@ -153,7 +157,7 @@ final class ConnectionPoolTests: XCTestCase {
         let pool = EventLoopConnectionPool(
             source: foo,
             maxConnections: 1,
-            on: self.group.next()
+            on: self.group.any()
         )
         let _ = try pool.requestConnection().wait()
         let b = pool.requestConnection()
@@ -185,7 +189,7 @@ final class ConnectionPoolTests: XCTestCase {
             source: foo,
             maxConnections: 1,
             requestTimeout: .milliseconds(100),
-            on: self.group.next()
+            on: self.group.any()
         )
         defer { try! pool.close().wait() }
         _ = pool.requestConnection()
@@ -205,7 +209,7 @@ final class ConnectionPoolTests: XCTestCase {
         let pool = EventLoopConnectionPool(
             source: foo,
             maxConnections: 3,
-            on: self.group.next()
+            on: self.group.any()
         )
 
         measure {
@@ -258,7 +262,7 @@ final class ConnectionPoolTests: XCTestCase {
             futures.append(promise.futureResult)
         }
 
-        try futures.flatten(on: group.next()).wait()
+        try futures.flatten(on: group.any()).wait()
     }
     
     func testGracefulShutdownAsync() throws {
@@ -328,7 +332,7 @@ final class ConnectionPoolTests: XCTestCase {
         defer { pool.shutdown() }
         
         for _ in 0..<500 {
-            let eventLoop = self.group.next()
+            let eventLoop = self.group.any()
             let a = pool.requestConnection(
                 on: eventLoop
             ).map { conn in
@@ -375,15 +379,15 @@ private struct ErrorDatabase: ConnectionPoolSource {
 }
 
 private final class FooDatabase: ConnectionPoolSource {
-    var connectionsCreated: NIOAtomic<Int>
+    var connectionsCreated: ManagedAtomic<Int>
 
     init() {
-        self.connectionsCreated = .makeAtomic(value: 0)
+        self.connectionsCreated = .init(0)
     }
     
     func makeConnection(logger: Logger, on eventLoop: EventLoop) -> EventLoopFuture<FooConnection> {
         let conn = FooConnection(on: eventLoop)
-        _ = self.connectionsCreated.add(1)
+        self.connectionsCreated.wrappingIncrement(by: 1, ordering: .relaxed)
         return conn.eventLoop.makeSucceededFuture(conn)
     }
 }

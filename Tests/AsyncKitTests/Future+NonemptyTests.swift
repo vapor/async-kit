@@ -1,5 +1,7 @@
 import XCTest
 import AsyncKit
+import NIOCore
+import NIOPosix
 
 final class FutureNonemptyTests: XCTestCase {
     func testNonempty() {
@@ -29,7 +31,7 @@ final class FutureNonemptyTests: XCTestCase {
     }
 
     var group: EventLoopGroup!
-    var eventLoop: EventLoop { self.group.next() }
+    var eventLoop: EventLoop { self.group.any() }
 
     override func setUpWithError() throws {
         try super.setUpWithError()

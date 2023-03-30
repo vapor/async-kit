@@ -111,7 +111,7 @@ final class FutureCollectionTests: XCTestCase {
     func testSequencedFlatMapEach() throws {
         struct SillyRangeError: Error {}
         var value = 0
-        let lock = Lock()
+        let lock = NIOLock()
         let collection = eventLoop.makeSucceededFuture([1, 2, 3, 4, 5, 6, 7, 8, 9])
         let times2 = collection.sequencedFlatMapEach { int -> EventLoopFuture<Int> in
             lock.withLock { value = Swift.max(value, int) }
@@ -126,7 +126,7 @@ final class FutureCollectionTests: XCTestCase {
     func testSequencedFlatMapVoid() throws {
         struct SillyRangeError: Error {}
         var value = 0
-        let lock = Lock()
+        let lock = NIOLock()
         let collection = eventLoop.makeSucceededFuture([1, 2, 3, 4, 5, 6, 7, 8, 9])
         let times2 = collection.sequencedFlatMapEach { int -> EventLoopFuture<Void> in
             lock.withLock { value = Swift.max(value, int) }
@@ -141,7 +141,7 @@ final class FutureCollectionTests: XCTestCase {
     func testSequencedFlatMapEachCompact() throws {
         struct SillyRangeError: Error {}
         var last = ""
-        let lock = Lock()
+        let lock = NIOLock()
         let collection = self.eventLoop.makeSucceededFuture(["one", "2", "3", "not", "4", "1", "five", "^", "7"])
         let times2 = collection.sequencedFlatMapEachCompact { val -> EventLoopFuture<Int?> in
             guard let int = Int(val) else { return self.eventLoop.makeSucceededFuture(nil) }
@@ -157,7 +157,7 @@ final class FutureCollectionTests: XCTestCase {
     func testELSequencedFlatMapEach() throws {
         struct SillyRangeError: Error {}
         var value = 0
-        let lock = Lock()
+        let lock = NIOLock()
         let collection = [1, 2, 3, 4, 5, 6, 7, 8, 9]
         let times2 = collection.sequencedFlatMapEach(on: self.eventLoop) { int -> EventLoopFuture<Int> in
             lock.withLock { value = Swift.max(value, int) }
@@ -172,7 +172,7 @@ final class FutureCollectionTests: XCTestCase {
     func testELSequencedFlatMapVoid() throws {
         struct SillyRangeError: Error {}
         var value = 0
-        let lock = Lock()
+        let lock = NIOLock()
         let collection = [1, 2, 3, 4, 5, 6, 7, 8, 9]
         let times2 = collection.sequencedFlatMapEach(on: self.eventLoop) { int -> EventLoopFuture<Void> in
             lock.withLock { value = Swift.max(value, int) }
@@ -187,7 +187,7 @@ final class FutureCollectionTests: XCTestCase {
     func testELSequencedFlatMapEachCompact() throws {
         struct SillyRangeError: Error {}
         var last = ""
-        let lock = Lock()
+        let lock = NIOLock()
         let collection = ["one", "2", "3", "not", "4", "1", "five", "^", "7"]
         let times2 = collection.sequencedFlatMapEachCompact(on: self.eventLoop) { val -> EventLoopFuture<Int?> in
             guard let int = Int(val) else { return self.eventLoop.makeSucceededFuture(nil) }
@@ -201,7 +201,7 @@ final class FutureCollectionTests: XCTestCase {
     }
 
     var group: EventLoopGroup!
-    var eventLoop: EventLoop { self.group.next() }
+    var eventLoop: EventLoop { self.group.any() }
 
     override func setUpWithError() throws {
         try super.setUpWithError()

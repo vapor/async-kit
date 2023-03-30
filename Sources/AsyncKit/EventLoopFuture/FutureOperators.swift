@@ -1,3 +1,5 @@
+import NIOCore
+
 // MARK: - +
 
 /// Adds two futures and produces their sum

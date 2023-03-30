@@ -1,12 +1,14 @@
 import NIOConcurrencyHelpers
 import AsyncKit
 import XCTest
+import NIOCore
+import NIOPosix
 
 final class EventLoopFutureQueueTests: XCTestCase {
     func testQueue() throws {
         let queue = EventLoopFutureQueue(eventLoop: self.eventLoop)
         var numbers: [Int] = []
-        let lock = Lock()
+        let lock = NIOLock()
 
         let one = queue.append(generator: {
             self.eventLoop.slowFuture(1).map { number -> Int in
@@ -51,7 +53,7 @@ final class EventLoopFutureQueueTests: XCTestCase {
     func testAutoclosure() throws {
         let queue = EventLoopFutureQueue(eventLoop: self.eventLoop)
         var numbers: [Int] = []
-        let lock = Lock()
+        let lock = NIOLock()
 
         let one = queue.append(self.eventLoop.slowFuture(1, sleeping: 1).map { num in lock.withLockVoid { numbers.append(num) } })
         let two = queue.append(self.eventLoop.slowFuture(2, sleeping: 0).map { num in lock.withLockVoid { numbers.append(num) } })
@@ -190,7 +192,7 @@ final class EventLoopFutureQueueTests: XCTestCase {
     }
 
     var group: EventLoopGroup!
-    var eventLoop: EventLoop { self.group.next() }
+    var eventLoop: EventLoop { self.group.any() }
 
     override func setUpWithError() throws {
         try super.setUpWithError()

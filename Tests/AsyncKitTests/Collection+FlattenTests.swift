@@ -1,5 +1,7 @@
 import AsyncKit
 import XCTest
+import NIOCore
+import NIOPosix
 
 final class CollectionFlattenTests: XCTestCase {
     func testELFlatten()throws {
@@ -46,7 +48,7 @@ final class CollectionFlattenTests: XCTestCase {
     }
     
     var group: EventLoopGroup!
-    var eventLoop: EventLoop { self.group.next() }
+    var eventLoop: EventLoop { self.group.any() }
 
     override func setUpWithError() throws {
         try super.setUpWithError()

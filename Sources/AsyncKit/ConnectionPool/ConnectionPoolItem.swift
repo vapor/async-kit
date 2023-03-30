@@ -1,4 +1,5 @@
 import Foundation
+import NIOCore
 
 /// Item managed by a connection pool.
 public protocol ConnectionPoolItem: AnyObject {

@@ -74,8 +74,8 @@ final class FutureConjunctionTests: XCTestCase {
     }
     
     func testTrivialWhenTheySucceedCorectness() throws {
-        let el1 = self.group.next()
-        let el2 = self.group.next()
+        let el1 = self.group.any()
+        let el2 = self.group.any()
         
         let f1 = el1.submit { return "string value" }
         let f2 = el1.submit { return Int.min }
@@ -190,7 +190,7 @@ final class FutureConjunctionTests: XCTestCase {
     }
 
     var group: EventLoopGroup!
-    var eventLoop: EventLoop { self.group.next() }
+    var eventLoop: EventLoop { self.group.any() }
 
     override func setUpWithError() throws {
         try super.setUpWithError()

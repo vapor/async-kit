@@ -1,6 +1,6 @@
 import struct Logging.Logger
-import struct NIO.TimeAmount
-import class NIOConcurrencyHelpers.Lock
+import NIOConcurrencyHelpers
+import NIOCore
 import Dispatch
 
 /// Holds a collection of connection pools for each `EventLoop` on an `EventLoopGroup`.
@@ -35,7 +35,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
     private let logger: Logger
     
     /// Synchronize access.
-    private let lock: Lock
+    private let lock: NIOLock
 
     /// If `true`, this connection pool has been closed.
     private var didShutdown: Bool
@@ -104,7 +104,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
         guard !self.lock.withLock({ self.didShutdown }) else {
             return (eventLoop ?? self.eventLoopGroup).future(error: ConnectionPoolError.shutdown)
         }
-        return self.pool(for: eventLoop ?? self.eventLoopGroup.next())
+        return self.pool(for: eventLoop ?? self.eventLoopGroup.any())
            .withConnection(logger: logger ?? self.logger, closure)
     }
     
@@ -129,7 +129,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
         guard !self.lock.withLock({ self.didShutdown }) else {
             return (eventLoop ?? self.eventLoopGroup).future(error: ConnectionPoolError.shutdown)
         }
-        return self.pool(for: eventLoop ?? self.eventLoopGroup.next())
+        return self.pool(for: eventLoop ?? self.eventLoopGroup.any())
             .requestConnection(logger: logger ?? self.logger)
     }
     
@@ -207,7 +207,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
         // - TODO: Does this need to assert "not on any EventLoop", as `EventLoopGroup.syncShutdownGracefully()` does?
         var possibleError: Error? = nil
         let waiter = DispatchWorkItem {}
-        let errorLock = Lock()
+        let errorLock = NIOLock()
         
         self.shutdownGracefully {
             if let error = $0 {
