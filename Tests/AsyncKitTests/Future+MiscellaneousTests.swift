@@ -25,13 +25,6 @@ final class FutureMiscellaneousTests: XCTestCase {
     }
 
     func testTryFutureThread() throws {
-        // There is a known bug in Swift 5.2 and earlier that causes this result.
-        // Skip check because it's been resolved in later versions and there's
-        // not a lot we can do about it.
-        #if swift(<5.3)
-        try XCTSkipIf(true, "Thread.current.name is broken in Swift 5.2")
-        #endif
-        
         let future = self.eventLoop.tryFuture { Thread.current.name }
         let name = try XCTUnwrap(future.wait())
 
