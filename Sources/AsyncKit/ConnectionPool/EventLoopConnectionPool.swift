@@ -35,7 +35,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     public let eventLoop: EventLoop
     
     /// ID generator
-    private var idGenerator = ManagedAtomic(0)
+    private let idGenerator = ManagedAtomic(0)
     
     /// All currently available connections.
     ///
