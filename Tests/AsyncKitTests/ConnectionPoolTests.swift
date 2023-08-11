@@ -13,7 +13,7 @@ final class ConnectionPoolTests: XCTestCase {
         let pool = EventLoopConnectionPool(
             source: foo,
             maxConnections: 2,
-            on: EmbeddedEventLoop()
+            on: self.group.any()
         )
         defer { try! pool.close().wait() }
         
@@ -25,28 +25,34 @@ final class ConnectionPoolTests: XCTestCase {
         XCTAssertEqual(foo.connectionsCreated.load(ordering: .relaxed), 2)
         
         // try to make a third, but pool only supports 2
-        var connC: FooConnection?
-        pool.requestConnection().whenSuccess { connC = $0 }
-        XCTAssertNil(connC)
+        let futureC = pool.requestConnection()
+        let connC = ManagedAtomic<FooConnection?>(nil)
+        futureC.whenSuccess { connC.store($0, ordering: .relaxed) }
+        XCTAssertNil(connC.load(ordering: .relaxed))
         XCTAssertEqual(foo.connectionsCreated.load(ordering: .relaxed), 2)
         
         // release one of the connections, allowing the third to be made
         pool.releaseConnection(connB)
-        XCTAssertNotNil(connC)
-        XCTAssert(connC === connB)
+        let connCRet = try futureC.wait()
+        XCTAssertNotNil(connC.load(ordering: .relaxed))
+        XCTAssert(connC.load(ordering: .relaxed) === connB)
+        XCTAssert(connCRet === connC.load(ordering: .relaxed))
         XCTAssertEqual(foo.connectionsCreated.load(ordering: .relaxed), 2)
         
         // try to make a third again, with two active
-        var connD: FooConnection?
-        pool.requestConnection().whenSuccess { connD = $0 }
-        XCTAssertNil(connD)
+        let futureD = pool.requestConnection()
+        let connD = ManagedAtomic<FooConnection?>(nil)
+        futureD.whenSuccess { connD.store($0, ordering: .relaxed) }
+        XCTAssertNil(connD.load(ordering: .relaxed))
         XCTAssertEqual(foo.connectionsCreated.load(ordering: .relaxed), 2)
         
         // this time, close the connection before releasing it
-        try connC!.close().wait()
-        pool.releaseConnection(connC!)
-        XCTAssert(connD !== connB)
-        XCTAssertEqual(connD?.isClosed, false)
+        try connCRet.close().wait()
+        pool.releaseConnection(connC.load(ordering: .relaxed)!)
+        let connDRet = try futureD.wait()
+        XCTAssert(connD.load(ordering: .relaxed) !== connB)
+        XCTAssert(connDRet === connD.load(ordering: .relaxed))
+        XCTAssertEqual(connD.load(ordering: .relaxed)?.isClosed, false)
         XCTAssertEqual(foo.connectionsCreated.load(ordering: .relaxed), 3)
     }
 
@@ -55,7 +61,7 @@ final class ConnectionPoolTests: XCTestCase {
         let pool = EventLoopConnectionPool(
             source: foo,
             maxConnections: 1,
-            on: EmbeddedEventLoop()
+            on: self.group.any()
         )
         defer { try! pool.close().wait() }
 
@@ -89,7 +95,7 @@ final class ConnectionPoolTests: XCTestCase {
         let pool = EventLoopConnectionPool(
             source: db,
             maxConnections: 1,
-            on: EmbeddedEventLoop()
+            on: self.group.any()
         )
         defer { try! pool.close().wait() }
 
@@ -349,7 +355,7 @@ private final class FooDatabase: ConnectionPoolSource {
     }
 }
 
-private final class FooConnection: ConnectionPoolItem {
+private final class FooConnection: ConnectionPoolItem, AtomicReference {
     var isClosed: Bool
     let eventLoop: EventLoop
 
