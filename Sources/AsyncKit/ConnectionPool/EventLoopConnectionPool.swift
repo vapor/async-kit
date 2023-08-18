@@ -1,6 +1,7 @@
 import Atomics
 import struct Logging.Logger
 import struct Foundation.UUID
+import struct Foundation.Date
 import NIOCore
 import Collections
 
@@ -21,36 +22,40 @@ import Collections
 ///     }
 public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolSource {
     private typealias WaitlistItem = (logger: Logger, promise: EventLoopPromise<Source.Connection>, timeoutTask: Scheduled<Void>)
-    
+
     /// Connection source.
     public let source: Source
-    
+
     /// Max connections for this pool.
     private let maxConnections: Int
-    
+
     /// Timeout for requesting a new connection.
     private let requestTimeout: TimeAmount
-    
+
     /// This pool's event loop.
     public let eventLoop: EventLoop
-    
+
     /// ID generator
     private let idGenerator = ManagedAtomic(0)
-    
+
     /// All currently available connections.
     ///
     /// > Note: Any connection in this list may have become invalid since its last use.
-    private var available: Deque<Source.Connection>
-    
+    private var available: Deque<PrunableConnection<Source.Connection>>
+
+    var openConnections: Int {
+        return self.available.filter { $0.isClosed }.count
+    }
+
     /// Current active connection count.
-    private var activeConnections: Int
-    
+    internal var activeConnections: Int
+
     /// Connection requests waiting to be fulfilled due to pool exhaustion.
     private var waiters: OrderedDictionary<Int, WaitlistItem>
-    
+
     /// If `true`, this storage has been shutdown.
     private var didShutdown: Bool
-    
+
     /// For lifecycle logs.
     public let logger: Logger
 
@@ -71,6 +76,8 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
         source: Source,
         maxConnections: Int,
         requestTimeout: TimeAmount = .seconds(10),
+        pruneInterval: TimeAmount = .seconds(60),
+        maxIdleTimeBeforePruning: TimeAmount = .seconds(120),
         logger: Logger = .init(label: "codes.vapor.pool"),
         on eventLoop: EventLoop
     ) {
@@ -83,8 +90,13 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
         self.activeConnections = 0
         self.waiters = .init(minimumCapacity: maxConnections << 2)
         self.didShutdown = false
+
+        self.setupPruneConnectionTask(
+            pruneInterval: pruneInterval,
+            maxIdleTimeBeforePruning: maxIdleTimeBeforePruning
+        )
     }
-    
+
     /// Fetches a pooled connection for the lifetime of the closure.
     ///
     /// The connection is provided to the supplied callback and will be automatically released when the
@@ -104,7 +116,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     ) -> EventLoopFuture<Result> {
         self.withConnection(logger: self.logger, closure)
     }
-    
+
     /// Fetches a pooled connection for the lifetime of the closure.
     ///
     /// The connection is provided to the supplied callback and will be automatically released when the
@@ -130,7 +142,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
             }
         }
     }
-    
+
     /// Requests a pooled connection.
     ///
     /// The connection returned by this method MUST be released when you are finished using it.
@@ -145,7 +157,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     public func requestConnection() -> EventLoopFuture<Source.Connection> {
         self.requestConnection(logger: self.logger)
     }
-    
+
     /// Requests a pooled connection.
     ///
     /// The connection returned by this method MUST be released when you are finished using it.
@@ -171,26 +183,26 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
             return promise.futureResult
         }
     }
-    
+
     /// Actual implementation of ``requestConnection(logger:)``.
     private func _requestConnection0(logger: Logger) -> EventLoopFuture<Source.Connection> {
         self.eventLoop.assertInEventLoop()
-        
+
         guard !self.didShutdown else {
             return self.eventLoop.makeFailedFuture(ConnectionPoolError.shutdown)
         }
-        
+
         // Find an available connection that isn't closed
         while let conn = self.available.popLast() {
             if !conn.isClosed {
                 logger.trace("Using available connection")
-                return self.eventLoop.makeSucceededFuture(conn)
+                return self.eventLoop.makeSucceededFuture(conn.originalConnection)
             } else {
                 logger.debug("Pruning defunct connection")
                 self.activeConnections -= 1
             }
         }
-        
+
         // Put the current request on the waiter list in case opening a new connection is slow
         let waiterId = self.idGenerator.wrappingIncrementThenLoad(ordering: .relaxed)
         let promise = self.eventLoop.makePromise(of: Source.Connection.self)
@@ -208,7 +220,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
         }
         logger.trace("Adding connection request to waitlist with ID \(waiterId)")
         self.waiters[waiterId] = (logger: logger, promise: promise, timeoutTask: timeoutTask)
-        
+
         promise.futureResult.whenComplete { [weak self] _ in
             logger.trace("Connection request with ID \(waiterId) completed")
             timeoutTask.cancel()
@@ -229,10 +241,10 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
                 return eventLoop.makeFailedFuture(error)
             }.cascadeFailure(to: promise)
         }
-        
+
         return promise.futureResult
     }
-    
+
     /// Releases a connection back to the pool. Use with `requestConnection()`.
     ///
     ///     let conn = try pool.requestConnection().wait()
@@ -244,7 +256,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     public func releaseConnection(_ connection: Source.Connection) {
         self.releaseConnection(connection, logger: self.logger)
     }
-    
+
     /// Releases a connection back to the pool. Use with `requestConnection()`.
     ///
     ///     let conn = try pool.requestConnection().wait()
@@ -261,10 +273,10 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
             self.eventLoop.execute { self._releaseConnection0(connection, logger: logger) }
         }
     }
-    
+
     private func _releaseConnection0(_ connection: Source.Connection, logger: Logger) {
         self.eventLoop.assertInEventLoop()
-        
+
         // If the pool has shut down, just close the connection and return
         guard !self.didShutdown else {
             if !connection.isClosed {
@@ -272,23 +284,43 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
             }
             return
         }
-        
+
         // Push the connection onto the end of the available list so it's the first one to get used
         // on the next request.
-        logger.trace("Releasing pool connection on \(self.eventLoop.description), \(self.available.count + (connection.isClosed ? 0 : 1)) connnections available.")
-        self.available.append(connection)
-        
+        logger.trace("Releasing pool connection on \(self.eventLoop.description), \(self.available.count + (connection.isClosed ? 0 : 1)) connections available.")
+        self.available.append(.init(connection: connection, lastUsed: Date()))
+
         // For as long as there are connections available, try to dequeue waiters. Even if the available
         // connection(s) are closed, the request logic will try to open new ones.
         while !self.available.isEmpty, !self.waiters.isEmpty {
             let waiter = self.waiters.removeFirst()
-            
+
             logger.debug("Servicing connection waitlist item with id \(waiter.key)")
             waiter.value.timeoutTask.cancel()
             self._requestConnection0(logger: waiter.value.logger).cascade(to: waiter.value.promise)
         }
     }
-    
+
+    func setupPruneConnectionTask(
+        pruneInterval: TimeAmount,
+        maxIdleTimeBeforePruning: TimeAmount
+    ) {
+        let maxIdleTimeBeforePruning = Double(maxIdleTimeBeforePruning.nanoseconds / 1_000_000_000)
+        self.eventLoop.scheduleRepeatedTask(
+            initialDelay: pruneInterval,
+            delay: pruneInterval
+        ) { [weak self] _ in
+            guard let `self` = self else { return }
+            for conn in self.available where !conn.isClosed {
+                if Date().timeIntervalSince(conn.lastUsed) >= maxIdleTimeBeforePruning {
+                    // the connection is too old, just releasing it
+                    logger.debug("Connection is too old, closing it")
+                    _ = conn.close()
+                }
+            }
+        }
+    }
+
     /// Closes the connection pool.
     ///
     /// All available connections will be closed immediately.
@@ -306,22 +338,22 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
             return promise.futureResult
         }
     }
-    
+
     private func _close0() -> EventLoopFuture<Void> {
         self.eventLoop.assertInEventLoop()
-        
+
         guard !self.didShutdown else {
             return self.eventLoop.makeSucceededVoidFuture()
         }
         self.didShutdown = true
         self.logger.trace("Connection pool shutting down - closing all available connections on this event loop")
-        
+
         for (_, waiter) in self.waiters {
             waiter.timeoutTask.cancel()
             waiter.promise.fail(ConnectionPoolError.shutdown)
         }
         self.waiters.removeAll()
-        
+
         return self.available.map {
             $0.close()
         }.flatten(on: self.eventLoop).map {
@@ -329,10 +361,28 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
             self.available.removeAll()
         }
     }
-    
+
     deinit {
         if !self.didShutdown {
             assertionFailure("ConnectionPoolStorage.shutdown() was not called before deinit.")
         }
+    }
+}
+
+public struct PrunableConnection<Connection: ConnectionPoolItem> {
+    var originalConnection: Connection
+    var lastUsed: Date
+
+    public var isClosed: Bool {
+        return self.originalConnection.isClosed
+    }
+
+    init(connection: Connection, lastUsed: Date) {
+        self.originalConnection = connection
+        self.lastUsed = lastUsed
+    }
+
+    func close() -> EventLoopFuture<Void> {
+        self.originalConnection.close()
     }
 }
