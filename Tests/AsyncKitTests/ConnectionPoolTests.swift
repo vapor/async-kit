@@ -56,6 +56,49 @@ final class ConnectionPoolTests: XCTestCase {
         XCTAssertEqual(foo.connectionsCreated.load(ordering: .relaxed), 3)
     }
 
+    func testConnectionPrunning() async throws {
+        let foo = FooDatabase()
+        let pool = EventLoopConnectionPool(
+            source: foo,
+            maxConnections: 5,
+            on: MultiThreadedEventLoopGroup(numberOfThreads: 1).next(),
+            pruneInterval: 0.1,
+            maxIdleTimeBeforePrunning: 0.15
+        )
+        
+        defer { try! pool.close().wait() }
+
+        let connA = try pool.requestConnection().wait()
+        
+        let anotherConnection1 = try pool.requestConnection().wait()
+        let anotherConnection2 = try pool.requestConnection().wait()
+
+        pool.releaseConnection(connA)
+
+        let connA1 = try pool.requestConnection().wait()
+        XCTAssert(connA === connA1)
+        pool.releaseConnection(connA1)
+
+        //keeping connection alive by using it and closing it
+        for _ in 1...3 {
+            try await Task.sleep(nanoseconds: UInt64(0.1 * Double(NSEC_PER_SEC)))
+            let connA2 = try pool.requestConnection().wait()
+            XCTAssert(connA === connA2)
+            pool.releaseConnection(connA2)
+        }
+        
+        pool.releaseConnection(anotherConnection1)
+        pool.releaseConnection(anotherConnection2)
+
+        try await Task.sleep(nanoseconds: UInt64(0.3 * Double(NSEC_PER_SEC)))
+        XCTAssertEqual(pool.activeConnections, 3)
+        XCTAssertEqual(pool.openedConnections, 0)
+
+        let connB = try pool.requestConnection().wait()
+        XCTAssert(connA !== connB)
+        XCTAssertEqual(pool.activeConnections, 1)
+    }
+    
     func testFIFOWaiters() throws {
         let foo = FooDatabase()
         let pool = EventLoopConnectionPool(
@@ -356,12 +399,15 @@ private final class FooDatabase: ConnectionPoolSource {
 }
 
 private final class FooConnection: ConnectionPoolItem, AtomicReference {
+    var lastUsed: Date
+    
     var isClosed: Bool
     let eventLoop: EventLoop
 
     init(on eventLoop: EventLoop) {
         self.eventLoop = eventLoop
         self.isClosed = false
+        self.lastUsed = Date()
     }
     
     func close() -> EventLoopFuture<Void> {

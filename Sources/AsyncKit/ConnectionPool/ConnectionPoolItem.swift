@@ -1,3 +1,4 @@
+import Foundation
 import NIOCore
 
 /// Item managed by a connection pool.
@@ -11,3 +12,4 @@ public protocol ConnectionPoolItem: AnyObject {
     /// Closes this connection.
     func close() -> EventLoopFuture<Void>
 }
+
