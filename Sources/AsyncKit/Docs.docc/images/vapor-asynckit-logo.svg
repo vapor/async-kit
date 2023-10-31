@@ -1,0 +1,21 @@
+<svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" id="technology">
+  <defs>
+  <style>
+    body[data-color-scheme="dark"]{--color-logo-shape:#000; --color-logo-base:#fff;}
+    @media(prefers-color-scheme:dark){:root{--color-logo-shape:#000; --color-logo-base:#fff;}}
+  </style>
+  <path id="d" d="M6,47l58-47,58,47-58,45z"/>
+  <path id="s" d="M6,47v12l58,45v-12z"/>
+  <path id="h" d="M84,37l-13.5,2.8,3.6-10.6c1.6-4.75-7.54-6.7-9.15-2l-3.6,10.6-9.9-7.8c-4.36-3.45-11.1,1.8-6.7,5.3l9.9,7.8-13.5,2.8c-6,1.26-3.54,8.5,2.5,7.2l13.5-2.8-3.6,10.6c-1.54,4.54,7.45,7,9.15,2l3.6-10.6,9.9,7.8c4.4,3.46,11.1-1.8,6.7-5.3l-9.9-7.8,13.5-2.8c6-1.25,3.5-8.5-2.5-7.2z"/>
+  </defs>
+  <use href="#s" fill="#38c0ff" y="24"/>
+  <use href="#s" fill="#6bd0ff" y="12"/>
+  <use href="#s" fill="#9ee0ff"/>
+  <g transform="matrix(-1 0 0 1 128 0)">
+    <use href="#s" fill="#e438ff" y="24"/>
+    <use href="#s" fill="#eb6bff" y="12"/>
+    <use href="#s" fill="#f29eff"/>
+  </g>
+  <use href="#d" style="fill:var(--color-logo-base, #000)"/>
+  <use href="#h" style="fill:var(--color-logo-shape,#fff)"/>
+</svg>

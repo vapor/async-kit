@@ -1,4 +1,4 @@
-import NIO
+import NIOCore
 
 extension EventLoopFuture {
     public func tryFlatMap<NewValue>(

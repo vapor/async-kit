@@ -6,7 +6,7 @@ extension EventLoop {
     ///
     /// This function can be used to bridge the `async` world into an `EventLoop`.
     ///
-    /// This method is deprecated. Call ``EventLoop/makeFutureWithTask(_:)`` directly
+    /// This method is deprecated. Call `EventLoop.makeFutureWithTask(_:)` directly
     /// instead.
     ///
     /// - parameters:

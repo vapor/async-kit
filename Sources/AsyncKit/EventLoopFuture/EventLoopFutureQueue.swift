@@ -1,4 +1,4 @@
-import NIO
+import NIOCore
 
 /// Allows you to queue closures that produce an `EventLoopFuture`, so each future only gets run if the previous ones complete, succeed, or fail.
 public final class EventLoopFutureQueue {

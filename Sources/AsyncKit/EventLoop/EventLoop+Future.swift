@@ -1,4 +1,4 @@
-import NIO
+import NIOCore
 
 extension EventLoopGroup {
     /// Creates a new, succeeded `EventLoopFuture` from the worker's event loop with a `Void` value.

@@ -1,4 +1,4 @@
-import NIO
+import NIOCore
 
 /// Given one or more optionals as inputs, checks whether each input is `nil`. If _any_ input is `nil`, `nil` is
 /// immediately returned as an overall results. If all of the inputs have values, the `transform` callback is invoked
