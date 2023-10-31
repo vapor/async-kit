@@ -1,9 +1,8 @@
 import AsyncKit
 import XCTest
 import NIOCore
-import NIOPosix
 
-final class CollectionFlattenTests: XCTestCase {
+final class CollectionFlattenTests: AsyncKitTestCase {
     func testELFlatten()throws {
         let futures = [
             self.eventLoop.makeSucceededFuture(1),
@@ -45,24 +44,5 @@ final class CollectionFlattenTests: XCTestCase {
         
         let flattened = futures.flatten(on: self.eventLoop)
         try XCTAssertEqual(flattened.wait(), [1, 2, 3, 4, 5, 6, 7])
-    }
-    
-    var group: EventLoopGroup!
-    var eventLoop: EventLoop { self.group.any() }
-
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-    }
-
-    override func tearDownWithError() throws {
-        try self.group.syncShutdownGracefully()
-        self.group = nil
-        try super.tearDownWithError()
-    }
-
-    override class func setUp() {
-        super.setUp()
-        XCTAssertTrue(isLoggingConfigured)
     }
 }

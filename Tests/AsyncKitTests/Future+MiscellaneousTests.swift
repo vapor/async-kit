@@ -1,9 +1,8 @@
 import XCTest
 import AsyncKit
 import NIOCore
-import NIOPosix
 
-final class FutureMiscellaneousTests: XCTestCase {
+final class FutureMiscellaneousTests: AsyncKitTestCase {
     func testGuard() {
         let future1 = eventLoop.makeSucceededFuture(1)
         let guardedFuture1 = future1.guard({ $0 == 1 }, else: TestError.notEqualTo1)
@@ -29,24 +28,5 @@ final class FutureMiscellaneousTests: XCTestCase {
         let name = try XCTUnwrap(future.wait())
 
         XCTAssert(name.starts(with: "NIO-ELT"), "'\(name)' is not a valid NIO ELT name")
-    }
-
-    var group: EventLoopGroup!
-    var eventLoop: EventLoop { self.group.any() }
-
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-    }
-
-    override func tearDownWithError() throws {
-        try self.group.syncShutdownGracefully()
-        self.group = nil
-        try super.tearDownWithError()
-    }
-
-    override class func setUp() {
-        super.setUp()
-        XCTAssertTrue(isLoggingConfigured)
     }
 }

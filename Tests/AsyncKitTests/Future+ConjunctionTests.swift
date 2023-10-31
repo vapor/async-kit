@@ -1,8 +1,8 @@
 import AsyncKit
 import XCTest
-import NIO
+import NIOCore
 
-final class FutureConjunctionTests: XCTestCase {
+final class FutureConjunctionTests: AsyncKitTestCase {
     func testTrivialStrictMapCorrectness() throws {
         XCTAssertNotNil(strictMap(()) { $0 })
         XCTAssertNil(strictMap(Void?.none) { _ in () })
@@ -187,24 +187,5 @@ final class FutureConjunctionTests: XCTestCase {
             let r = try EventLoopFuture.whenTheySucceed(f[0], f[1], f[2], f[3], f[4], f[5], f[6], f[7], f[8], f[9], f[10], f[11], f[12], f[13], f[14], f[15], f[16], f[17], f[18], f[19]).wait()
             XCTAssert(r.0 == 0 && r.1 == 1 && r.2 == 2 && r.3 == 3 && r.4 == 4 && r.5 == 5 && r.6 == 6 && r.7 == 7 && r.8 == 8 && r.9 == 9 && r.10 == 10 && r.11 == 11 && r.12 == 12 && r.13 == 13 && r.14 == 14 && r.15 == 15 && r.16 == 16 && r.17 == 17 && r.18 == 18 && r.19 == 19)
         }
-    }
-
-    var group: EventLoopGroup!
-    var eventLoop: EventLoop { self.group.any() }
-
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-    }
-
-    override func tearDownWithError() throws {
-        try self.group.syncShutdownGracefully()
-        self.group = nil
-        try super.tearDownWithError()
-    }
-
-    override class func setUp() {
-        super.setUp()
-        XCTAssertTrue(isLoggingConfigured)
     }
 }
