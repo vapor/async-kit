@@ -21,7 +21,6 @@ extension EventLoopGroup {
         return self.makeFutureWithTask(body)
     }
     
-    @available(macOS 10.15, iOS 13, tvOS 13, watchOS 6, *)
     @inlinable
     public func makeFutureWithTask<Value>(
         _ body: @escaping @Sendable () async throws -> Value
