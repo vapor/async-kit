@@ -1,9 +1,8 @@
 import XCTest
 import AsyncKit
 import NIOCore
-import NIOPosix
 
-final class FutureNonemptyTests: XCTestCase {
+final class FutureNonemptyTests: AsyncKitTestCase {
     func testNonempty() {
         try XCTAssertNoThrow(self.eventLoop.future([0]).nonempty(orError: TestError.notEqualTo1).wait())
         try XCTAssertThrowsError(self.eventLoop.future([]).nonempty(orError: TestError.notEqualTo1).wait())
@@ -28,24 +27,5 @@ final class FutureNonemptyTests: XCTestCase {
 
         XCTAssertEqual(try self.eventLoop.future([0]).nonemptyFlatMap({ self.eventLoop.future([$0[0]]) }).wait(), [0])
         XCTAssertEqual(try self.eventLoop.future([Int]()).nonemptyFlatMap({ self.eventLoop.future([$0[0]]) }).wait(), [])
-    }
-
-    var group: EventLoopGroup!
-    var eventLoop: EventLoop { self.group.any() }
-
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-    }
-
-    override func tearDownWithError() throws {
-        try self.group.syncShutdownGracefully()
-        self.group = nil
-        try super.tearDownWithError()
-    }
-
-    override class func setUp() {
-        super.setUp()
-        XCTAssertTrue(isLoggingConfigured)
     }
 }

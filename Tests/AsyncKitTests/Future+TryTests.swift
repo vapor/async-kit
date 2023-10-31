@@ -1,10 +1,8 @@
-import NIO
+import NIOCore
 import AsyncKit
 import XCTest
 
-final class FutureTryTests: XCTestCase {
-    private let eventLoop = EmbeddedEventLoop()
-
+final class FutureTryTests: AsyncKitTestCase {
     func testTryFlatMapPropagatesCallbackError() {
         let future = eventLoop.future(0)
             .tryFlatMap { _ -> EventLoopFuture<String> in

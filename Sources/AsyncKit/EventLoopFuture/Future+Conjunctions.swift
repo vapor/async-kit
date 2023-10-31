@@ -1,4 +1,4 @@
-import NIO
+import NIOCore
 
 extension EventLoopFuture {
     /// Returns a new `EventLoopFuture` that succeeds only if all of the provided fs succeed.
@@ -20,7 +20,7 @@ extension EventLoopFuture {
         return fA.and(fB)
     }
 
-    /// ``EventLoopFuture.whenTheySucceed(_:_:file:line:)`` of order 3.
+    /// ``whenTheySucceed(_:_:file:line:)`` of order 3.
     @inlinable
     public static func whenTheySucceed<A, B, C>(
         _ fA: EventLoopFuture<A>, _ fB: EventLoopFuture<B>, _ fC: EventLoopFuture<C>,
@@ -36,7 +36,7 @@ extension EventLoopFuture {
             .futureResult
     }
 
-    /// ``EventLoopFuture.whenTheySucceed(_:_:file:line:)`` of order 4.
+    /// ``whenTheySucceed(_:_:file:line:)`` of order 4.
     @inlinable
     public static func whenTheySucceed<A, B, C, D>(
         _ fA: EventLoopFuture<A>, _ fB: EventLoopFuture<B>, _ fC: EventLoopFuture<C>, _ fD: EventLoopFuture<D>,
@@ -53,7 +53,7 @@ extension EventLoopFuture {
             .futureResult
     }
 
-    /// ``EventLoopFuture.whenTheySucceed(_:_:file:line:)`` of order 5.
+    /// ``whenTheySucceed(_:_:file:line:)`` of order 5.
     @inlinable
     public static func whenTheySucceed<A, B, C, D, E>(
         _ fA: EventLoopFuture<A>, _ fB: EventLoopFuture<B>, _ fC: EventLoopFuture<C>, _ fD: EventLoopFuture<D>, _ fE: EventLoopFuture<E>,
@@ -71,7 +71,7 @@ extension EventLoopFuture {
             .futureResult
     }
 
-    /// ``EventLoopFuture.whenTheySucceed(_:_:file:line:)`` of order 6.
+    /// ``whenTheySucceed(_:_:file:line:)`` of order 6.
     @inlinable
     public static func whenTheySucceed<A, B, C, D, E, F>(
         _ fA: EventLoopFuture<A>, _ fB: EventLoopFuture<B>, _ fC: EventLoopFuture<C>, _ fD: EventLoopFuture<D>, _ fE: EventLoopFuture<E>, _ fF: EventLoopFuture<F>,
@@ -90,7 +90,7 @@ extension EventLoopFuture {
             .futureResult
     }
 
-    /// ``EventLoopFuture.whenTheySucceed(_:_:file:line:)`` of order 7.
+    /// ``whenTheySucceed(_:_:file:line:)`` of order 7.
     @inlinable
     public static func whenTheySucceed<A, B, C, D, E, F, G>(
         _ fA: EventLoopFuture<A>, _ fB: EventLoopFuture<B>, _ fC: EventLoopFuture<C>, _ fD: EventLoopFuture<D>, _ fE: EventLoopFuture<E>, _ fF: EventLoopFuture<F>, _ fG: EventLoopFuture<G>,
@@ -110,7 +110,7 @@ extension EventLoopFuture {
             .futureResult
     }
 
-    /// ``EventLoopFuture.whenTheySucceed(_:_:file:line:)`` of order 8.
+    /// ``whenTheySucceed(_:_:file:line:)`` of order 8.
     @inlinable
     public static func whenTheySucceed<A, B, C, D, E, F, G, H>(
         _ fA: EventLoopFuture<A>, _ fB: EventLoopFuture<B>, _ fC: EventLoopFuture<C>, _ fD: EventLoopFuture<D>, _ fE: EventLoopFuture<E>, _ fF: EventLoopFuture<F>, _ fG: EventLoopFuture<G>, _ fH: EventLoopFuture<H>,
@@ -131,7 +131,7 @@ extension EventLoopFuture {
             .futureResult
     }
 
-    /// ``EventLoopFuture.whenTheySucceed(_:_:file:line:)`` of order 9.
+    /// ``whenTheySucceed(_:_:file:line:)`` of order 9.
     @inlinable
     public static func whenTheySucceed<A, B, C, D, E, F, G, H, I>(
         _ fA: EventLoopFuture<A>, _ fB: EventLoopFuture<B>, _ fC: EventLoopFuture<C>, _ fD: EventLoopFuture<D>, _ fE: EventLoopFuture<E>, _ fF: EventLoopFuture<F>, _ fG: EventLoopFuture<G>, _ fH: EventLoopFuture<H>, _ fI: EventLoopFuture<I>,
@@ -153,7 +153,7 @@ extension EventLoopFuture {
             .futureResult
     }
 
-    /// ``EventLoopFuture.whenTheySucceed(_:_:file:line:)`` of order 10.
+    /// ``whenTheySucceed(_:_:file:line:)`` of order 10.
     @inlinable
     public static func whenTheySucceed<A, B, C, D, E, F, G, H, I, J>(
         _ fA: EventLoopFuture<A>, _ fB: EventLoopFuture<B>, _ fC: EventLoopFuture<C>, _ fD: EventLoopFuture<D>, _ fE: EventLoopFuture<E>, _ fF: EventLoopFuture<F>, _ fG: EventLoopFuture<G>, _ fH: EventLoopFuture<H>, _ fI: EventLoopFuture<I>, _ fJ: EventLoopFuture<J>,
@@ -176,7 +176,7 @@ extension EventLoopFuture {
             .futureResult
     }
 
-    /// ``EventLoopFuture.whenTheySucceed(_:_:file:line:)`` of order 11.
+    /// ``whenTheySucceed(_:_:file:line:)`` of order 11.
     @inlinable
     public static func whenTheySucceed<A, B, C, D, E, F, G, H, I, J, K>(
         _ fA: EventLoopFuture<A>, _ fB: EventLoopFuture<B>, _ fC: EventLoopFuture<C>, _ fD: EventLoopFuture<D>, _ fE: EventLoopFuture<E>, _ fF: EventLoopFuture<F>, _ fG: EventLoopFuture<G>, _ fH: EventLoopFuture<H>, _ fI: EventLoopFuture<I>, _ fJ: EventLoopFuture<J>, _ fK: EventLoopFuture<K>,
@@ -200,7 +200,7 @@ extension EventLoopFuture {
             .futureResult
     }
 
-    /// ``EventLoopFuture.whenTheySucceed(_:_:file:line:)`` of order 12.
+    /// ``whenTheySucceed(_:_:file:line:)`` of order 12.
     @inlinable
     public static func whenTheySucceed<A, B, C, D, E, F, G, H, I, J, K, L>(
         _ fA: EventLoopFuture<A>, _ fB: EventLoopFuture<B>, _ fC: EventLoopFuture<C>, _ fD: EventLoopFuture<D>, _ fE: EventLoopFuture<E>, _ fF: EventLoopFuture<F>, _ fG: EventLoopFuture<G>, _ fH: EventLoopFuture<H>, _ fI: EventLoopFuture<I>, _ fJ: EventLoopFuture<J>, _ fK: EventLoopFuture<K>, _ fL: EventLoopFuture<L>,
@@ -225,7 +225,7 @@ extension EventLoopFuture {
             .futureResult
     }
 
-    /// ``EventLoopFuture.whenTheySucceed(_:_:file:line:)`` of order 13.
+    /// ``whenTheySucceed(_:_:file:line:)`` of order 13.
     @inlinable
     public static func whenTheySucceed<A, B, C, D, E, F, G, H, I, J, K, L, M>(
         _ fA: EventLoopFuture<A>, _ fB: EventLoopFuture<B>, _ fC: EventLoopFuture<C>, _ fD: EventLoopFuture<D>, _ fE: EventLoopFuture<E>, _ fF: EventLoopFuture<F>, _ fG: EventLoopFuture<G>, _ fH: EventLoopFuture<H>, _ fI: EventLoopFuture<I>, _ fJ: EventLoopFuture<J>, _ fK: EventLoopFuture<K>, _ fL: EventLoopFuture<L>, _ fM: EventLoopFuture<M>,
@@ -251,7 +251,7 @@ extension EventLoopFuture {
             .futureResult
     }
 
-    /// ``EventLoopFuture.whenTheySucceed(_:_:file:line:)`` of order 14.
+    /// ``whenTheySucceed(_:_:file:line:)`` of order 14.
     @inlinable
     public static func whenTheySucceed<A, B, C, D, E, F, G, H, I, J, K, L, M, N>(
         _ fA: EventLoopFuture<A>, _ fB: EventLoopFuture<B>, _ fC: EventLoopFuture<C>, _ fD: EventLoopFuture<D>, _ fE: EventLoopFuture<E>, _ fF: EventLoopFuture<F>, _ fG: EventLoopFuture<G>, _ fH: EventLoopFuture<H>, _ fI: EventLoopFuture<I>, _ fJ: EventLoopFuture<J>, _ fK: EventLoopFuture<K>, _ fL: EventLoopFuture<L>, _ fM: EventLoopFuture<M>, _ fN: EventLoopFuture<N>,
@@ -278,7 +278,7 @@ extension EventLoopFuture {
             .futureResult
     }
 
-    /// ``EventLoopFuture.whenTheySucceed(_:_:file:line:)`` of order 15.
+    /// ``whenTheySucceed(_:_:file:line:)`` of order 15.
     @inlinable
     public static func whenTheySucceed<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O>(
         _ fA: EventLoopFuture<A>, _ fB: EventLoopFuture<B>, _ fC: EventLoopFuture<C>, _ fD: EventLoopFuture<D>, _ fE: EventLoopFuture<E>, _ fF: EventLoopFuture<F>, _ fG: EventLoopFuture<G>, _ fH: EventLoopFuture<H>, _ fI: EventLoopFuture<I>, _ fJ: EventLoopFuture<J>, _ fK: EventLoopFuture<K>, _ fL: EventLoopFuture<L>, _ fM: EventLoopFuture<M>, _ fN: EventLoopFuture<N>, _ fO: EventLoopFuture<O>,
@@ -306,7 +306,7 @@ extension EventLoopFuture {
             .futureResult
     }
 
-    /// ``EventLoopFuture.whenTheySucceed(_:_:file:line:)`` of order 16.
+    /// ``whenTheySucceed(_:_:file:line:)`` of order 16.
     @inlinable
     public static func whenTheySucceed<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P>(
         _ fA: EventLoopFuture<A>, _ fB: EventLoopFuture<B>, _ fC: EventLoopFuture<C>, _ fD: EventLoopFuture<D>, _ fE: EventLoopFuture<E>, _ fF: EventLoopFuture<F>, _ fG: EventLoopFuture<G>, _ fH: EventLoopFuture<H>, _ fI: EventLoopFuture<I>, _ fJ: EventLoopFuture<J>, _ fK: EventLoopFuture<K>, _ fL: EventLoopFuture<L>, _ fM: EventLoopFuture<M>, _ fN: EventLoopFuture<N>, _ fO: EventLoopFuture<O>, _ fP: EventLoopFuture<P>,
@@ -335,7 +335,7 @@ extension EventLoopFuture {
             .futureResult
     }
 
-    /// ``EventLoopFuture.whenTheySucceed(_:_:file:line:)`` of order 17.
+    /// ``whenTheySucceed(_:_:file:line:)`` of order 17.
     @inlinable
     public static func whenTheySucceed<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q>(
         _ fA: EventLoopFuture<A>, _ fB: EventLoopFuture<B>, _ fC: EventLoopFuture<C>, _ fD: EventLoopFuture<D>, _ fE: EventLoopFuture<E>, _ fF: EventLoopFuture<F>, _ fG: EventLoopFuture<G>, _ fH: EventLoopFuture<H>, _ fI: EventLoopFuture<I>, _ fJ: EventLoopFuture<J>, _ fK: EventLoopFuture<K>, _ fL: EventLoopFuture<L>, _ fM: EventLoopFuture<M>, _ fN: EventLoopFuture<N>, _ fO: EventLoopFuture<O>, _ fP: EventLoopFuture<P>, _ fQ: EventLoopFuture<Q>,
@@ -365,7 +365,7 @@ extension EventLoopFuture {
             .futureResult
     }
 
-    /// ``EventLoopFuture.whenTheySucceed(_:_:file:line:)`` of order 18.
+    /// ``whenTheySucceed(_:_:file:line:)`` of order 18.
     @inlinable
     public static func whenTheySucceed<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R>(
         _ fA: EventLoopFuture<A>, _ fB: EventLoopFuture<B>, _ fC: EventLoopFuture<C>, _ fD: EventLoopFuture<D>, _ fE: EventLoopFuture<E>, _ fF: EventLoopFuture<F>, _ fG: EventLoopFuture<G>, _ fH: EventLoopFuture<H>, _ fI: EventLoopFuture<I>, _ fJ: EventLoopFuture<J>, _ fK: EventLoopFuture<K>, _ fL: EventLoopFuture<L>, _ fM: EventLoopFuture<M>, _ fN: EventLoopFuture<N>, _ fO: EventLoopFuture<O>, _ fP: EventLoopFuture<P>, _ fQ: EventLoopFuture<Q>, _ fR: EventLoopFuture<R>,
@@ -396,7 +396,7 @@ extension EventLoopFuture {
             .futureResult
     }
 
-    /// ``EventLoopFuture.whenTheySucceed(_:_:file:line:)`` of order 19.
+    /// ``whenTheySucceed(_:_:file:line:)`` of order 19.
     @inlinable
     public static func whenTheySucceed<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S>(
         _ fA: EventLoopFuture<A>, _ fB: EventLoopFuture<B>, _ fC: EventLoopFuture<C>, _ fD: EventLoopFuture<D>, _ fE: EventLoopFuture<E>, _ fF: EventLoopFuture<F>, _ fG: EventLoopFuture<G>, _ fH: EventLoopFuture<H>, _ fI: EventLoopFuture<I>, _ fJ: EventLoopFuture<J>, _ fK: EventLoopFuture<K>, _ fL: EventLoopFuture<L>, _ fM: EventLoopFuture<M>, _ fN: EventLoopFuture<N>, _ fO: EventLoopFuture<O>, _ fP: EventLoopFuture<P>, _ fQ: EventLoopFuture<Q>, _ fR: EventLoopFuture<R>, _ fS: EventLoopFuture<S>,
@@ -428,7 +428,7 @@ extension EventLoopFuture {
         .futureResult
     }
 
-    /// ``EventLoopFuture.whenTheySucceed(_:_:file:line:)`` of order 20.
+    /// ``whenTheySucceed(_:_:file:line:)`` of order 20.
     @inlinable
     public static func whenTheySucceed<A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T>(
         _ fA: EventLoopFuture<A>, _ fB: EventLoopFuture<B>, _ fC: EventLoopFuture<C>, _ fD: EventLoopFuture<D>, _ fE: EventLoopFuture<E>, _ fF: EventLoopFuture<F>, _ fG: EventLoopFuture<G>, _ fH: EventLoopFuture<H>, _ fI: EventLoopFuture<I>, _ fJ: EventLoopFuture<J>, _ fK: EventLoopFuture<K>, _ fL: EventLoopFuture<L>, _ fM: EventLoopFuture<M>, _ fN: EventLoopFuture<N>, _ fO: EventLoopFuture<O>, _ fP: EventLoopFuture<P>, _ fQ: EventLoopFuture<Q>, _ fR: EventLoopFuture<R>, _ fS: EventLoopFuture<S>, _ fT: EventLoopFuture<T>,

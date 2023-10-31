@@ -1,9 +1,8 @@
 import XCTest
 import AsyncKit
 import NIOCore
-import NIOPosix
 
-class FutureTransformTests: XCTestCase {
+class FutureTransformTests: AsyncKitTestCase {
     func testTransforms() throws {
         let future = eventLoop.makeSucceededFuture(Int.random(in: 0...100))
         
@@ -19,24 +18,5 @@ class FutureTransformTests: XCTestCase {
         XCTAssert(try future.transform(to: futureBool).wait())
         
         XCTAssert(try futureA.and(futureB).transform(to: futureBool).wait())
-    }
-
-    var group: EventLoopGroup!
-    var eventLoop: EventLoop { self.group.any() }
-
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-    }
-
-    override func tearDownWithError() throws {
-        try self.group.syncShutdownGracefully()
-        self.group = nil
-        try super.tearDownWithError()
-    }
-
-    override class func setUp() {
-        super.setUp()
-        XCTAssertTrue(isLoggingConfigured)
     }
 }

@@ -1,4 +1,4 @@
-import NIO
+import NIOCore
 
 extension EventLoopFutureQueue {
     /// For each element of the provided collection, invoke the given generator

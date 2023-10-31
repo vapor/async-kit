@@ -4,10 +4,9 @@ import XCTest
 import NIOConcurrencyHelpers
 import Logging
 import NIOCore
-import NIOPosix
 import NIOEmbedded
 
-final class ConnectionPoolTests: XCTestCase {
+final class ConnectionPoolTests: AsyncKitTestCase {
     func testPooling() throws {
         let foo = FooDatabase()
         let pool = EventLoopConnectionPool(
@@ -310,24 +309,6 @@ final class ConnectionPoolTests: XCTestCase {
             }
             _ = try a.and(b).wait()
         }
-    }
-
-    var group: EventLoopGroup!
-
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-    }
-
-    override func tearDownWithError() throws {
-        try self.group.syncShutdownGracefully()
-        self.group = nil
-        try super.tearDownWithError()
-    }
-
-    override class func setUp() {
-        super.setUp()
-        XCTAssertTrue(isLoggingConfigured)
     }
 }
 

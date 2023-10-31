@@ -1,6 +1,6 @@
 import AsyncKit
 import XCTest
-import NIO
+import NIOCore
 import NIOConcurrencyHelpers
 
 extension EventLoopGroup {
@@ -11,7 +11,7 @@ extension EventLoopGroup {
     }
 }
 
-final class FutureCollectionTests: XCTestCase {
+final class FutureCollectionTests: AsyncKitTestCase {
     func testMapEach() throws {
         let collection1 = self.eventLoop.makeSucceededFuture([1, 2, 3, 4, 5, 6, 7, 8, 9])
         let times2 = collection1.mapEach { int -> Int in int * 2 }
@@ -198,24 +198,5 @@ final class FutureCollectionTests: XCTestCase {
         
         XCTAssertThrowsError(try times2.wait())
         XCTAssertEqual(lock.withLock { last }, "3")
-    }
-
-    var group: EventLoopGroup!
-    var eventLoop: EventLoop { self.group.any() }
-
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-    }
-
-    override func tearDownWithError() throws {
-        try self.group.syncShutdownGracefully()
-        self.group = nil
-        try super.tearDownWithError()
-    }
-
-    override class func setUp() {
-        super.setUp()
-        XCTAssertTrue(isLoggingConfigured)
     }
 }

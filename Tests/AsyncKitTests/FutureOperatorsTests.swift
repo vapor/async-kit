@@ -1,9 +1,8 @@
 import XCTest
 import AsyncKit
 import NIOCore
-import NIOPosix
 
-final class FutureOperatorTests: XCTestCase {
+final class FutureOperatorTests: AsyncKitTestCase {
     func testAddition() throws {
         var future1 = eventLoop.makeSucceededFuture(8)
         let future2 = eventLoop.makeSucceededFuture(5)
@@ -133,24 +132,5 @@ final class FutureOperatorTests: XCTestCase {
     func testNOT() throws {
         let future1: EventLoopFuture<UInt8> = eventLoop.makeSucceededFuture(0b00001111)
         XCTAssertEqual(try ~future1.wait(), 0b11110000)
-    }
-    
-    var group: EventLoopGroup!
-    var eventLoop: EventLoop { self.group.any() }
-
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-    }
-
-    override func tearDownWithError() throws {
-        try self.group.syncShutdownGracefully()
-        self.group = nil
-        try super.tearDownWithError()
-    }
-
-    override class func setUp() {
-        super.setUp()
-        XCTAssertTrue(isLoggingConfigured)
     }
 }

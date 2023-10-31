@@ -11,4 +11,4 @@ jobs:
      with:
        package_name: async-kit
        modules: AsyncKit
-       pathsToInvalidate: /async-kit
+       pathsToInvalidate: /asynckit/*

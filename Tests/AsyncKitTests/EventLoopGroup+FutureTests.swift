@@ -1,9 +1,8 @@
 import AsyncKit
 import XCTest
 import NIOCore
-import NIOPosix
 
-final class EventLoopGroupFutureTests: XCTestCase {
+final class EventLoopGroupFutureTests: AsyncKitTestCase {
     func testFutureVoid() throws {
         try XCTAssertNoThrow(self.group.future().wait())
         try XCTAssertNoThrow(self.eventLoop.future().wait())
@@ -23,24 +22,5 @@ final class EventLoopGroupFutureTests: XCTestCase {
         
         try XCTAssertThrowsError(groupErr.wait())
         try XCTAssertThrowsError(eventLoopErr.wait())
-    }
-    
-    var group: EventLoopGroup!
-    var eventLoop: EventLoop { self.group.any() }
-
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
-    }
-
-    override func tearDownWithError() throws {
-        try self.group.syncShutdownGracefully()
-        self.group = nil
-        try super.tearDownWithError()
-    }
-
-    override class func setUp() {
-        super.setUp()
-        XCTAssertTrue(isLoggingConfigured)
     }
 }
