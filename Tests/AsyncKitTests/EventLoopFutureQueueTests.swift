@@ -10,31 +10,31 @@ final class EventLoopFutureQueueTests: AsyncKitTestCase {
         let lock = NIOLock()
 
         let one = queue.append(generator: {
-            self.eventLoop.slowFuture(1).map { number -> Int in
+            self.eventLoop.slowFuture(1, sleeping: .random(in: 0.01 ... 0.5)).map { number -> Int in
                 lock.withLockVoid { numbers.append(number) }
                 return number
             }
         })
         let two = queue.append(generator: {
-            self.eventLoop.slowFuture(2).map { number -> Int in
+            self.eventLoop.slowFuture(2, sleeping: .random(in: 0.01 ... 0.5)).map { number -> Int in
                 lock.withLockVoid { numbers.append(number) }
                 return number
             }
         })
         let three = queue.append(generator: {
-            self.eventLoop.slowFuture(3).map { number -> Int in
+            self.eventLoop.slowFuture(3, sleeping: .random(in: 0.01 ... 0.5)).map { number -> Int in
                 lock.withLockVoid { numbers.append(number) }
                 return number
             }
         })
         let four = queue.append(generator: {
-            self.eventLoop.slowFuture(4).map { number -> Int in
+            self.eventLoop.slowFuture(4, sleeping: .random(in: 0.01 ... 0.5)).map { number -> Int in
                 lock.withLockVoid { numbers.append(number) }
                 return number
             }
         })
         let five = queue.append(generator: {
-            self.eventLoop.slowFuture(5).map { number -> Int in
+            self.eventLoop.slowFuture(5, sleeping: .random(in: 0.01 ... 0.5)).map { number -> Int in
                 lock.withLockVoid { numbers.append(number) }
                 return number
             }
@@ -54,11 +54,11 @@ final class EventLoopFutureQueueTests: AsyncKitTestCase {
         var numbers: [Int] = []
         let lock = NIOLock()
 
-        let one = queue.append(self.eventLoop.slowFuture(1, sleeping: 1).map { num in lock.withLockVoid { numbers.append(num) } })
+        let one = queue.append(self.eventLoop.slowFuture(1, sleeping: 0.25).map { num in lock.withLockVoid { numbers.append(num) } })
         let two = queue.append(self.eventLoop.slowFuture(2, sleeping: 0).map { num in lock.withLockVoid { numbers.append(num) } })
         let three = queue.append(self.eventLoop.slowFuture(3, sleeping: 0).map { num in lock.withLockVoid { numbers.append(num) } })
-        let four = queue.append(self.eventLoop.slowFuture(4, sleeping: 1).map { num in lock.withLockVoid { numbers.append(num) } })
-        let five = queue.append(self.eventLoop.slowFuture(5, sleeping: 1).map { num in lock.withLockVoid { numbers.append(num) } })
+        let four = queue.append(self.eventLoop.slowFuture(4, sleeping: 0.25).map { num in lock.withLockVoid { numbers.append(num) } })
+        let five = queue.append(self.eventLoop.slowFuture(5, sleeping: 0.25).map { num in lock.withLockVoid { numbers.append(num) } })
 
         try XCTAssertNoThrow(one.wait())
         try XCTAssertNoThrow(two.wait())
@@ -72,13 +72,13 @@ final class EventLoopFutureQueueTests: AsyncKitTestCase {
     func testContinueOnSucceed() throws {
         let queue = EventLoopFutureQueue(eventLoop: self.eventLoop)
 
-        let one = queue.append(self.eventLoop.slowFuture(1, sleeping: 1), runningOn: .success)
+        let one = queue.append(self.eventLoop.slowFuture(1, sleeping: 0.25), runningOn: .success)
         let two = queue.append(self.eventLoop.slowFuture(2, sleeping: 0), runningOn: .success)
         let fail: EventLoopFuture<Int> = queue.append(
             self.eventLoop.makeFailedFuture(Failure.nope),
             runningOn: .success
         )
-        let three = queue.append(self.eventLoop.slowFuture(3, sleeping: 1), runningOn: .success)
+        let three = queue.append(self.eventLoop.slowFuture(3, sleeping: 0.25), runningOn: .success)
 
         try XCTAssertEqual(one.wait(), 1)
         try XCTAssertEqual(two.wait(), 2)
@@ -102,9 +102,9 @@ final class EventLoopFutureQueueTests: AsyncKitTestCase {
             self.eventLoop.makeFailedFuture(Failure.nope),
             runningOn: .success
         )
-        let one = queue.append(self.eventLoop.slowFuture(1, sleeping: 1), runningOn: .failure)
+        let one = queue.append(self.eventLoop.slowFuture(1, sleeping: 0.25), runningOn: .failure)
         let two = queue.append(self.eventLoop.slowFuture(2, sleeping: 0), runningOn: .success)
-        let three = queue.append(self.eventLoop.slowFuture(3, sleeping: 1), runningOn: .failure)
+        let three = queue.append(self.eventLoop.slowFuture(3, sleeping: 0.25), runningOn: .failure)
 
         try XCTAssertEqual(one.wait(), 1)
         try XCTAssertEqual(two.wait(), 2)
@@ -123,7 +123,7 @@ final class EventLoopFutureQueueTests: AsyncKitTestCase {
         let queue = EventLoopFutureQueue(eventLoop: self.eventLoop)
         let values = [1, 2, 3, 4, 5]
         
-        let all = queue.append(each: values) { self.eventLoop.slowFuture($0, sleeping: 1) }
+        let all = queue.append(each: values) { self.eventLoop.slowFuture($0, sleeping: 0.25) }
 
         try XCTAssertEqual(all.wait(), [1, 2, 3, 4, 5])
     }
@@ -147,7 +147,7 @@ final class EventLoopFutureQueueTests: AsyncKitTestCase {
                 return self.eventLoop.future(error: Failure.nope)
             }
             completedResults.append(v)
-            return self.eventLoop.slowFuture(v, sleeping: 1)
+            return self.eventLoop.slowFuture(v, sleeping: 0.25)
         }
         
         try XCTAssertThrowsError(all.wait())
@@ -192,8 +192,8 @@ final class EventLoopFutureQueueTests: AsyncKitTestCase {
 }
 
 fileprivate extension EventLoop {
-    func slowFuture<T>(_ value: T, sleeping: UInt32? = nil) -> EventLoopFuture<T> {
-        sleep(sleeping ?? UInt32.random(in: 0...2))
+    func slowFuture<T>(_ value: T, sleeping: TimeInterval) -> EventLoopFuture<T> {
+        Thread.sleep(forTimeInterval: sleeping)
         return self.future(value)
     }
 }
