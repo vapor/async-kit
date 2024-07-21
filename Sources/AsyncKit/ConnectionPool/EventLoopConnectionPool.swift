@@ -201,7 +201,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
                 return
             }
             logger.error("""
-                Connection request (ID \(waiterId) timed out. This might indicate a connection deadlock in \
+                Connection request (ID \(waiterId)) timed out. This might indicate a connection deadlock in \
                 your application. If you have long-running requests, consider increasing your connection timeout.
                 """)
             promise.fail(ConnectionPoolTimeoutError.connectionRequestTimeout)
