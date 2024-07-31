@@ -264,6 +264,26 @@ final class ConnectionPoolTests: AsyncKitTestCase {
             XCTAssertEqual($0 as? ConnectionPoolError, ConnectionPoolError.shutdown)
         }
     }
+    
+    func testGracefulShutdownAsync() async throws {
+        let foo = FooDatabase()
+        let pool = EventLoopGroupConnectionPool(
+            source: foo,
+            maxConnectionsPerEventLoop: 2,
+            on: self.group
+        )
+        
+        try await pool.shutdownAsync()
+        var errorCaught = false
+        
+        do {
+            try await pool.shutdownAsync()
+        } catch {
+            errorCaught = true
+            XCTAssertEqual(error as? ConnectionPoolError, ConnectionPoolError.shutdown)
+        }
+        XCTAssertTrue(errorCaught)
+    }
 
     func testGracefulShutdownWithHeldConnection() throws {
         let foo = FooDatabase()
