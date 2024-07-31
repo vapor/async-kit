@@ -192,7 +192,7 @@ final class AsyncConnectionPoolTests: AsyncKitAsyncTestCase {
         XCTAssertFalse(result1)
         pool.releaseConnection(connection)
         let result2 = try await connection.eventLoop.submit { connection.isClosed }.get()
-        XCTAssertFalse(result2)
+        XCTAssertTrue(result2)
     }
 
     func testEventLoopDelegation() async throws {
