@@ -215,7 +215,8 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
             self.logger.debug("Connection pool shutting down, closing each event loop's storage")
             return true
         }) else {
-            return
+            self.logger.debug("Cannot shutdown the connection pool more than once")
+            throw ConnectionPoolError.shutdown
         }
         
         // shutdown all pools
