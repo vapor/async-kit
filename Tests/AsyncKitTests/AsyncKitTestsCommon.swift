@@ -43,3 +43,20 @@ class AsyncKitTestCase: XCTestCase {
         XCTAssertTrue(isLoggingConfigured)
     }
 }
+
+class AsyncKitAsyncTestCase: XCTestCase {
+    var group: (any EventLoopGroup)!
+    var eventLoop: any EventLoop { self.group.any() }
+
+    override func setUp() async throws {
+        try await super.setUp()
+        self.group = MultiThreadedEventLoopGroup(numberOfThreads: 1)
+        XCTAssertTrue(isLoggingConfigured)
+    }
+    
+    override func tearDown() async throws {
+        try await self.group.shutdownGracefully()
+        self.group = nil
+        try await super.tearDown()
+    }
+}

@@ -166,6 +166,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
     ///
     /// - Warning: This method is soft-deprecated. Use `syncShutdownGracefully()` or
     ///   `shutdownGracefully()` instead.
+    @available(*, noasync, message: "This calls wait() and should not be used in an async context", renamed: "shutdownAsync()")
     public func shutdown() {
         // synchronize access to closing
         guard self.lock.withLock({
@@ -198,11 +199,50 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
     ///
     /// Connection pools must be closed before they deinitialize.
     ///
+    /// This method shuts down asynchronously, waiting for all connection closures to complete before
+    /// returning.
+    ///
+    /// - Warning: The pool is always fully shut down once this method returns, even if an error is
+    ///   thrown. All errors are purely advisory.
+    public func shutdownAsync() async throws {
+        // synchronize access to closing
+        guard self.lock.withLock({
+            // check to make sure we aren't double closing
+            guard !self.didShutdown else {
+                return false
+            }
+            self.didShutdown = true
+            self.logger.debug("Connection pool shutting down, closing each event loop's storage")
+            return true
+        }) else {
+            self.logger.debug("Cannot shutdown the connection pool more than once")
+            throw ConnectionPoolError.shutdown
+        }
+        
+        // shutdown all pools
+        for pool in self.storage.values {
+            do {
+                try await pool.close().get()
+            } catch {
+                self.logger.error("Failed shutting down event loop pool: \(error)")
+            }
+        }
+    }
+    
+    /// Closes the connection pool.
+    ///
+    /// All available connections will be closed immediately. Any connections still in use will be
+    /// closed as soon as they are returned to the pool. Once closed, the pool can not be used to
+    /// create new connections.
+    ///
+    /// Connection pools must be closed before they deinitialize.
+    ///
     /// This method shuts down synchronously, waiting for all connection closures to complete before
     /// returning.
     ///
     /// - Warning: The pool is always fully shut down once this method returns, even if an error is
     ///   thrown. All errors are purely advisory.
+    @available(*, noasync, message: "This calls wait() and should not be used in an async context", renamed: "shutdownAsync()")
     public func syncShutdownGracefully() throws {
         // - TODO: Does this need to assert "not on any EventLoop", as `EventLoopGroup.syncShutdownGracefully()` does?
         var possibleError: Error? = nil
