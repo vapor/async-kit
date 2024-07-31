@@ -265,26 +265,6 @@ final class ConnectionPoolTests: AsyncKitTestCase {
         }
     }
     
-    func testGracefulShutdownAsync() async throws {
-        let foo = FooDatabase()
-        let pool = EventLoopGroupConnectionPool(
-            source: foo,
-            maxConnectionsPerEventLoop: 2,
-            on: self.group
-        )
-        
-        try await pool.shutdownAsync()
-        var errorCaught = false
-        
-        do {
-            try await pool.shutdownAsync()
-        } catch {
-            errorCaught = true
-            XCTAssertEqual(error as? ConnectionPoolError, ConnectionPoolError.shutdown)
-        }
-        XCTAssertTrue(errorCaught)
-    }
-
     func testGracefulShutdownWithHeldConnection() throws {
         let foo = FooDatabase()
         let pool = EventLoopGroupConnectionPool(
@@ -332,7 +312,7 @@ final class ConnectionPoolTests: AsyncKitTestCase {
     }
 }
 
-private struct ErrorDatabase: ConnectionPoolSource {
+struct ErrorDatabase: ConnectionPoolSource {
     enum Error: Swift.Error {
         case test
     }
@@ -342,7 +322,7 @@ private struct ErrorDatabase: ConnectionPoolSource {
     }
 }
 
-private final class FooDatabase: ConnectionPoolSource {
+final class FooDatabase: ConnectionPoolSource {
     var connectionsCreated: ManagedAtomic<Int>
 
     init() {
@@ -356,7 +336,7 @@ private final class FooDatabase: ConnectionPoolSource {
     }
 }
 
-private final class FooConnection: ConnectionPoolItem, AtomicReference {
+final class FooConnection: ConnectionPoolItem, AtomicReference {
     var isClosed: Bool
     let eventLoop: EventLoop
 
