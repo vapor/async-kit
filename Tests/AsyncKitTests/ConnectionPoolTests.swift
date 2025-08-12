@@ -1,5 +1,5 @@
+@testable import AsyncKit
 import Atomics
-import AsyncKit
 import Logging
 import NIOConcurrencyHelpers
 import NIOCore
@@ -53,6 +53,52 @@ final class ConnectionPoolTests: AsyncKitTestCase {
         XCTAssert(connDRet === connD.load(ordering: .relaxed))
         XCTAssertEqual(connD.load(ordering: .relaxed)?.isClosed, false)
         XCTAssertEqual(foo.connectionsCreated.load(ordering: .relaxed), 3)
+    }
+
+    func testConnectionPruning() throws {
+        let foo = FooDatabase()
+        let pool = EventLoopConnectionPool(
+            source: foo,
+            maxConnections: 5,
+            pruneInterval: .milliseconds(200),
+            maxIdleTimeBeforePruning: .milliseconds(300),
+            on: MultiThreadedEventLoopGroup(numberOfThreads: 1).next()
+        )
+
+        defer { try! pool.close().wait() }
+
+        let connA = try pool.requestConnection().wait()
+
+        let anotherConnection1 = try pool.requestConnection().wait()
+        let anotherConnection2 = try pool.requestConnection().wait()
+
+        pool.releaseConnection(connA)
+
+        let connA1 = try pool.requestConnection().wait()
+        XCTAssert(connA === connA1)
+        pool.releaseConnection(connA1)
+
+        // Keeping connection alive by using it and closing it
+        for _ in 0..<3 {
+            Thread.sleep(forTimeInterval: 0.2)
+            let connA2 = try pool.requestConnection().wait()
+            XCTAssert(connA === connA2)
+            pool.releaseConnection(connA2)
+        }
+
+        pool.releaseConnection(anotherConnection1)
+        pool.releaseConnection(anotherConnection2)
+
+        Thread.sleep(forTimeInterval: 0.7)
+        let (knownConnections, activeConnections, openConnections) = try pool.poolState().wait()
+        XCTAssertEqual(knownConnections, 0)
+        XCTAssertEqual(activeConnections, 0)
+        XCTAssertEqual(openConnections, 0)
+
+        let connB = try pool.requestConnection().wait()
+        XCTAssert(connA !== connB)
+        let newActiveConnections = try pool.poolState().wait().active
+        XCTAssertEqual(newActiveConnections, 1)
     }
 
     func testFIFOWaiters() throws {

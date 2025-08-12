@@ -36,12 +36,12 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
 
     /// ID generator
     private let idGenerator = ManagedAtomic(0)
-    /// All currently available connections.
 
+    /// All currently available connections, paired with their last usage times.
     ///
     /// > Note: Any connection in this list may have become invalid since its last use.
-    private var available: Deque<Source.Connection>
-    
+    private var available: Deque<(connection: Source.Connection, lastUse: NIODeadline)>
+
     /// Current active connection count.
     private var activeConnections: Int
 
@@ -54,6 +54,15 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     /// For lifecycle logs.
     public let logger: Logger
 
+    /// Pruning interval, if enabled.
+    private let pruningInterval: TimeAmount?
+
+    /// Max connection idle time before pruning, if enabled.
+    private let maxIdleTimeBeforePruning: TimeAmount
+
+    /// Connection pruning timer, if pruning is enabled.
+    private var pruningTask: RepeatedTask?
+
     /// Creates a new ``EventLoopConnectionPool``.
     ///
     ///     let pool = EventLoopConnectionPool(...)
@@ -65,18 +74,26 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     ///   - source: Creates new connections when needed.
     ///   - maxConnections: Limits the number of connections that can be open. Defaults to 1.
     ///   - requestTimeout: Timeout for requesting a new connection. Defaults to 10 seconds.
+    ///   - pruneInterval: How often to check for and prune idle database connections. If `nil` (the default),
+    ///     no pruning is performed.
+    ///   - maxIdleTimeBeforePruning: How long a connection may remain idle before being pruned, if pruning is enabled.
+    ///     Defaults to 2 minutes. Ignored if `pruneInterval` is `nil`.
     ///   - logger: For lifecycle logs.
     ///   - on: Event loop.
     public init(
         source: Source,
         maxConnections: Int,
         requestTimeout: TimeAmount = .seconds(10),
+        pruneInterval: TimeAmount? = nil,
+        maxIdleTimeBeforePruning: TimeAmount = .seconds(120),
         logger: Logger = .init(label: "codes.vapor.pool"),
         on eventLoop: any EventLoop
     ) {
         self.source = source
         self.maxConnections = maxConnections
         self.requestTimeout = requestTimeout
+        self.pruningInterval = pruneInterval
+        self.maxIdleTimeBeforePruning = maxIdleTimeBeforePruning
         self.logger = logger
         self.eventLoop = eventLoop
         self.available = .init(minimumCapacity: maxConnections)
@@ -182,9 +199,9 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
 
         // Find an available connection that isn't closed
         while let conn = self.available.popLast() {
-            if !conn.isClosed {
+            if !conn.connection.isClosed {
                 logger.trace("Using available connection")
-                return self.eventLoop.makeSucceededFuture(conn)
+                return self.eventLoop.makeSucceededFuture(conn.connection)
             } else {
                 logger.debug("Pruning defunct connection")
                 self.activeConnections -= 1
@@ -275,9 +292,30 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
 
         // Push the connection onto the end of the available list so it's the first one to get used
         // on the next request.
-        logger.trace("Releasing pool connection on \(self.eventLoop.description), \(self.available.count + (connection.isClosed ? 0 : 1)) connnections available.")
-        self.available.append(connection)
-        
+        logger.trace("Releasing pool connection on \(self.eventLoop.description), \(self.available.count + (connection.isClosed ? 0 : 1)) connections available.")
+
+        self.available.append((connection: connection, lastUse: .now()))
+        if self.available.count == 1, let pruningInterval = self.pruningInterval, self.pruningTask == nil { // just added our very first connection
+            self.pruningTask = self.eventLoop.scheduleRepeatedTask(
+                initialDelay: pruningInterval,
+                delay: pruningInterval,
+            ) { [unowned self] _ in
+                var prunedConnections: Set<ObjectIdentifier> = []
+
+                for conninfo in self.available where !conninfo.connection.isClosed {
+                    if conninfo.lastUse + self.maxIdleTimeBeforePruning < .now() {
+                        self.logger.debug("Pruning idle connection.")
+                        _ = conninfo.connection.close()
+                        prunedConnections.insert(.init(conninfo.connection))
+                    }
+                }
+                if !prunedConnections.isEmpty {
+                    self.available.removeAll(where: { prunedConnections.contains(ObjectIdentifier($0.connection)) })
+                    self.activeConnections -= prunedConnections.count
+                }
+            }
+        }
+
         // For as long as there are connections available, try to dequeue waiters. Even if the available
         // connection(s) are closed, the request logic will try to open new ones.
         while !self.available.isEmpty, !self.waiters.isEmpty {
@@ -315,21 +353,38 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
         }
         self.didShutdown = true
         self.logger.trace("Connection pool shutting down - closing all available connections on this event loop")
-        
+
+        let pruningCancellationPromise = self.eventLoop.makePromise(of: Void.self)
+        if let pruningTask = self.pruningTask {
+            pruningTask.cancel(promise: pruningCancellationPromise)
+        } else {
+            pruningCancellationPromise.succeed()
+        }
+
         for (_, waiter) in self.waiters {
             waiter.timeoutTask.cancel()
             waiter.promise.fail(ConnectionPoolError.shutdown)
         }
         self.waiters.removeAll()
-        
-        return self.available.map {
-            $0.close()
-        }.flatten(on: self.eventLoop).map {
+
+        return pruningCancellationPromise.futureResult.flatMap {
+            self.available.map {
+                $0.connection.close()
+            }.flatten(on: self.eventLoop)
+        }.map {
             self.activeConnections = 0
             self.available.removeAll()
         }
     }
-    
+
+    internal/*testable*/ func poolState() -> EventLoopFuture<(known: Int, active: Int, open: Int)> {
+        if self.eventLoop.inEventLoop {
+            self.eventLoop.makeSucceededFuture((self.available.count, self.activeConnections, self.available.count(where: { !$0.connection.isClosed })))
+        } else {
+            self.eventLoop.submit { (self.available.count, self.activeConnections, self.available.count(where: { !$0.connection.isClosed })) }
+        }
+    }
+
     deinit {
         if !self.didShutdown {
             assertionFailure("ConnectionPoolStorage.shutdown() was not called before deinit.")

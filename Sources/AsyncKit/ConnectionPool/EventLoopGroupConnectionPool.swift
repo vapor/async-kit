@@ -62,6 +62,8 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
         source: Source,
         maxConnectionsPerEventLoop: Int = 1,
         requestTimeout: TimeAmount = .seconds(10),
+        pruneInterval: TimeAmount? = nil,
+        maxIdleTimeBeforePruning: TimeAmount = .seconds(120),
         logger: Logger = .init(label: "codes.vapor.pool"),
         on eventLoopGroup: any EventLoopGroup
     ) {
@@ -75,6 +77,8 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
             source: source,
             maxConnections: maxConnectionsPerEventLoop,
             requestTimeout: requestTimeout,
+            pruneInterval: pruneInterval,
+            maxIdleTimeBeforePruning: maxIdleTimeBeforePruning,
             logger: logger,
             on: $0
         )) })
