@@ -298,7 +298,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
         if self.available.count == 1, let pruningInterval = self.pruningInterval, self.pruningTask == nil { // just added our very first connection
             self.pruningTask = self.eventLoop.scheduleRepeatedTask(
                 initialDelay: pruningInterval,
-                delay: pruningInterval,
+                delay: pruningInterval
             ) { [unowned self] _ in
                 var prunedConnections: Set<ObjectIdentifier> = []
 
@@ -379,9 +379,9 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
 
     internal/*testable*/ func poolState() -> EventLoopFuture<(known: Int, active: Int, open: Int)> {
         if self.eventLoop.inEventLoop {
-            self.eventLoop.makeSucceededFuture((self.available.count, self.activeConnections, self.available.count(where: { !$0.connection.isClosed })))
+            self.eventLoop.makeSucceededFuture((self.available.count, self.activeConnections, self.available.filter { !$0.connection.isClosed }.count))
         } else {
-            self.eventLoop.submit { (self.available.count, self.activeConnections, self.available.count(where: { !$0.connection.isClosed })) }
+            self.eventLoop.submit { (self.available.count, self.activeConnections, self.available.filter { !$0.connection.isClosed }.count) }
         }
     }
 
