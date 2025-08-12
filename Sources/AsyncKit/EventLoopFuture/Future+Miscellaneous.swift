@@ -15,7 +15,7 @@ extension EventLoopFuture {
     ///   - callback: Callback that asynchronously executes a condition.
     ///   - error: The error to fail with if condition isn't met.
     /// - returns: A future containing the original future's result.
-    public func `guard`(_ callback: @escaping ((Value) -> Bool), else error: @escaping @autoclosure () -> Error) -> EventLoopFuture<Value> {
+    public func `guard`(_ callback: @escaping ((Value) -> Bool), else error: @escaping @autoclosure () -> any Error) -> EventLoopFuture<Value> {
         let promise = self.eventLoop.makePromise(of: Value.self)
         self.whenComplete { result in
             switch result {
@@ -40,7 +40,7 @@ extension EventLoopFuture {
     /// temporarily extending the lifetime of one or more objects.
     public func flatMapAlways<NewValue>(
         file: StaticString = #file, line: UInt = #line,
-        _ callback: @escaping (Result<Value, Error>) -> EventLoopFuture<NewValue>
+        _ callback: @escaping (Result<Value, any Error>) -> EventLoopFuture<NewValue>
     ) -> EventLoopFuture<NewValue> {
         let promise = self.eventLoop.makePromise(of: NewValue.self, file: file, line: line)
         self.whenComplete { result in callback(result).cascade(to: promise) }

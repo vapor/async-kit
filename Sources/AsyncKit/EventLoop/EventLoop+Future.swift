@@ -26,7 +26,7 @@ extension EventLoopGroup {
     ///
     /// - Parameter error: The error that the future will wrap.
     /// - Returns: The failed future.
-    public func future<T>(error: Error) -> EventLoopFuture<T> {
+    public func future<T>(error: any Error) -> EventLoopFuture<T> {
         return self.any().makeFailedFuture(error)
     }
     
@@ -37,7 +37,7 @@ extension EventLoopGroup {
     ///
     /// - Parameter result: The result that the future will wrap.
     /// - Returns: The succeeded or failed future.
-    public func future<T>(result: Result<T, Error>) -> EventLoopFuture<T> {
+    public func future<T>(result: Result<T, any Error>) -> EventLoopFuture<T> {
         let promise: EventLoopPromise<T> = self.any().makePromise()
         promise.completeWith(result)
         return promise.futureResult

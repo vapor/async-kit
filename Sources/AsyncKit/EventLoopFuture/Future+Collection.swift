@@ -114,7 +114,7 @@ extension EventLoopFuture where Value: Sequence {
     /// - returns: A new `EventLoopFuture` that wraps the results
     ///   of all the `EventLoopFuture`s returned from the closure.
     public func flatMapEach<Result>(
-        on eventLoop: EventLoop,
+        on eventLoop: any EventLoop,
         _ transform: @escaping (_ element: Value.Element) -> EventLoopFuture<Result>
     ) -> EventLoopFuture<[Result]> {
         self.flatMap { .reduce(into: [], $0.map(transform), on: eventLoop) { $0.append($1) } }
@@ -134,7 +134,7 @@ extension EventLoopFuture where Value: Sequence {
     /// - returns: A new `EventLoopFuture` that completes when all the returned
     ///   `EVentLoopFuture`s do.
     public func flatMapEach(
-        on eventLoop: EventLoop,
+        on eventLoop: any EventLoop,
         _ transform: @escaping (_ element: Value.Element) -> EventLoopFuture<Void>
     ) -> EventLoopFuture<Void> {
         self.flatMap { .andAllSucceed($0.map(transform), on: eventLoop) }
@@ -153,7 +153,7 @@ extension EventLoopFuture where Value: Sequence {
     /// - returns: A new `EventLoopFuture` that wraps the non-nil results
     ///   of all the `EventLoopFuture`s returned from the closure.
     public func flatMapEachCompact<Result>(
-        on eventLoop: EventLoop,
+        on eventLoop: any EventLoop,
         _ transform: @escaping (_ element: Value.Element) -> EventLoopFuture<Result?>
     ) -> EventLoopFuture<[Result]> {
         self.flatMap { .reduce(into: [], $0.map(transform), on: eventLoop) { res, elem in elem.map { res.append($0) } } }

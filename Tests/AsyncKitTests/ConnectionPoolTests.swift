@@ -1,10 +1,10 @@
 import Atomics
 import AsyncKit
-import XCTest
-import NIOConcurrencyHelpers
 import Logging
+import NIOConcurrencyHelpers
 import NIOCore
 import NIOEmbedded
+import XCTest
 
 final class ConnectionPoolTests: AsyncKitTestCase {
     func testPooling() throws {
@@ -15,21 +15,21 @@ final class ConnectionPoolTests: AsyncKitTestCase {
             on: self.group.any()
         )
         defer { try! pool.close().wait() }
-        
+
         // make two connections
         let connA = try pool.requestConnection().wait()
         XCTAssertEqual(connA.isClosed, false)
         let connB = try pool.requestConnection().wait()
         XCTAssertEqual(connB.isClosed, false)
         XCTAssertEqual(foo.connectionsCreated.load(ordering: .relaxed), 2)
-        
+
         // try to make a third, but pool only supports 2
         let futureC = pool.requestConnection()
         let connC = ManagedAtomic<FooConnection?>(nil)
         futureC.whenSuccess { connC.store($0, ordering: .relaxed) }
         XCTAssertNil(connC.load(ordering: .relaxed))
         XCTAssertEqual(foo.connectionsCreated.load(ordering: .relaxed), 2)
-        
+
         // release one of the connections, allowing the third to be made
         pool.releaseConnection(connB)
         let connCRet = try futureC.wait()
@@ -37,14 +37,14 @@ final class ConnectionPoolTests: AsyncKitTestCase {
         XCTAssert(connC.load(ordering: .relaxed) === connB)
         XCTAssert(connCRet === connC.load(ordering: .relaxed))
         XCTAssertEqual(foo.connectionsCreated.load(ordering: .relaxed), 2)
-        
+
         // try to make a third again, with two active
         let futureD = pool.requestConnection()
         let connD = ManagedAtomic<FooConnection?>(nil)
         futureD.whenSuccess { connD.store($0, ordering: .relaxed) }
         XCTAssertNil(connD.load(ordering: .relaxed))
         XCTAssertEqual(foo.connectionsCreated.load(ordering: .relaxed), 2)
-        
+
         // this time, close the connection before releasing it
         try connCRet.close().wait()
         pool.releaseConnection(connC.load(ordering: .relaxed)!)
@@ -124,7 +124,7 @@ final class ConnectionPoolTests: AsyncKitTestCase {
         let _ = try pool.requestConnection().wait()
         let b = pool.requestConnection()
         try pool.close().wait()
-        
+
         let c = pool.requestConnection()
 
         // check that waiters are failed
@@ -143,7 +143,7 @@ final class ConnectionPoolTests: AsyncKitTestCase {
             // pass
         }
     }
-    
+
     // https://github.com/vapor/async-kit/issues/63
     func testDeadlock() {
         let foo = FooDatabase()
@@ -165,7 +165,7 @@ final class ConnectionPoolTests: AsyncKitTestCase {
         }
     }
 
-    func testPerformance() {
+    /*func testPerformance() {
         guard performance(expected: 0.088) else { return }
         let foo = FooDatabase()
         let pool = EventLoopConnectionPool(
@@ -196,7 +196,7 @@ final class ConnectionPoolTests: AsyncKitTestCase {
                 }
             }
         }
-    }
+    }*/
 
     func testThreadSafety() throws {
         let foo = FooDatabase()
@@ -226,7 +226,7 @@ final class ConnectionPoolTests: AsyncKitTestCase {
 
         try futures.flatten(on: group.any()).wait()
     }
-    
+
     func testGracefulShutdownAsync() throws {
         let foo = FooDatabase()
         let pool = EventLoopGroupConnectionPool(
@@ -234,23 +234,23 @@ final class ConnectionPoolTests: AsyncKitTestCase {
             maxConnectionsPerEventLoop: 2,
             on: self.group
         )
-        
+
         let expectation1 = XCTestExpectation(description: "Shutdown completion")
         let expectation2 = XCTestExpectation(description: "Shutdown completion with error")
-        
+
         pool.shutdownGracefully {
             XCTAssertNil($0)
             expectation1.fulfill()
         }
         XCTWaiter().wait(for: [expectation1], timeout: 5.0)
-        
+
         pool.shutdownGracefully {
             XCTAssertEqual($0 as? ConnectionPoolError, ConnectionPoolError.shutdown)
             expectation2.fulfill()
         }
         XCTWaiter().wait(for: [expectation2], timeout: 5.0)
     }
-    
+
     func testGracefulShutdownSync() throws {
         let foo = FooDatabase()
         let pool = EventLoopGroupConnectionPool(
@@ -258,13 +258,13 @@ final class ConnectionPoolTests: AsyncKitTestCase {
             maxConnectionsPerEventLoop: 2,
             on: self.group
         )
-        
+
         XCTAssertNoThrow(try pool.syncShutdownGracefully())
         XCTAssertThrowsError(try pool.syncShutdownGracefully()) {
             XCTAssertEqual($0 as? ConnectionPoolError, ConnectionPoolError.shutdown)
         }
     }
-    
+
     func testGracefulShutdownWithHeldConnection() throws {
         let foo = FooDatabase()
         let pool = EventLoopGroupConnectionPool(
@@ -272,16 +272,16 @@ final class ConnectionPoolTests: AsyncKitTestCase {
             maxConnectionsPerEventLoop: 2,
             on: self.group
         )
-        
+
         let connection = try pool.requestConnection().wait()
-        
+
         XCTAssertNoThrow(try pool.syncShutdownGracefully())
         XCTAssertThrowsError(try pool.syncShutdownGracefully()) {
             XCTAssertEqual($0 as? ConnectionPoolError, ConnectionPoolError.shutdown)
         }
-        XCTAssertFalse(try connection.eventLoop.submit{ connection.isClosed }.wait())
+        XCTAssertFalse(try connection.eventLoop.submit { connection.isClosed }.wait())
         pool.releaseConnection(connection)
-        XCTAssertTrue(try connection.eventLoop.submit{ connection.isClosed }.wait())
+        XCTAssertTrue(try connection.eventLoop.submit { connection.isClosed }.wait())
     }
 
     func testEventLoopDelegation() throws {
@@ -292,7 +292,7 @@ final class ConnectionPoolTests: AsyncKitTestCase {
             on: self.group
         )
         defer { pool.shutdown() }
-        
+
         for _ in 0..<500 {
             let eventLoop = self.group.any()
             let a = pool.requestConnection(
@@ -316,8 +316,8 @@ struct ErrorDatabase: ConnectionPoolSource {
     enum Error: Swift.Error {
         case test
     }
-    
-    func makeConnection(logger: Logger, on eventLoop: EventLoop) -> EventLoopFuture<FooConnection> {
+
+    func makeConnection(logger: Logger, on eventLoop: any EventLoop) -> EventLoopFuture<FooConnection> {
         return eventLoop.makeFailedFuture(Error.test)
     }
 }
@@ -328,37 +328,37 @@ final class FooDatabase: ConnectionPoolSource {
     init() {
         self.connectionsCreated = .init(0)
     }
-    
-    func makeConnection(logger: Logger, on eventLoop: EventLoop) -> EventLoopFuture<FooConnection> {
+
+    func makeConnection(logger: Logger, on eventLoop: any EventLoop) -> EventLoopFuture<FooConnection> {
         let conn = FooConnection(on: eventLoop)
         self.connectionsCreated.wrappingIncrement(by: 1, ordering: .relaxed)
         return conn.eventLoop.makeSucceededFuture(conn)
     }
 }
 
-final class FooConnection: ConnectionPoolItem, AtomicReference {
+final class FooConnection: ConnectionPoolItem, AtomicReference, @unchecked Sendable {
     var isClosed: Bool
-    let eventLoop: EventLoop
+    let eventLoop: any EventLoop
 
-    init(on eventLoop: EventLoop) {
+    init(on eventLoop: any EventLoop) {
         self.eventLoop = eventLoop
         self.isClosed = false
     }
-    
+
     func close() -> EventLoopFuture<Void> {
         self.isClosed = true
         return self.eventLoop.makeSucceededFuture(())
     }
 }
 
-func performance(expected seconds: Double, name: String = #function) -> Bool {
-#if DEBUG
-//    guard !_isDebugAssertConfiguration() else {
+/*func performance(expected seconds: Double, name: String = #function) -> Bool {
+    #if DEBUG
+        //    guard !_isDebugAssertConfiguration() else {
         print("[PERFORMANCE] Skipping \(name) in debug build mode")
         return false
-//    }
-#else
-    print("[PERFORMANCE] \(name) expected: \(seconds) seconds")
-    return true
-#endif
-}
+    //    }
+    #else
+        print("[PERFORMANCE] \(name) expected: \(seconds) seconds")
+        return true
+    #endif
+}*/

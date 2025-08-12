@@ -1,5 +1,5 @@
 import Atomics
-import AsyncKit
+@preconcurrency import AsyncKit
 import XCTest
 import NIOConcurrencyHelpers
 import Logging

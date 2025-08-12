@@ -20,7 +20,7 @@ public final class EventLoopFutureQueue {
     public enum ContinueError: Error, CustomStringConvertible {
 
         /// A previous future failed with an error, which we don't desire.
-        case previousError(Error)
+        case previousError(any Error)
 
         /// A previous future succeeded, which we don't desire.
         case previousSuccess
@@ -43,7 +43,7 @@ public final class EventLoopFutureQueue {
     }
 
     /// The event loop that all the futures's completions are handled on.
-    public let eventLoop: EventLoop
+    public let eventLoop: any EventLoop
     
     /// The current waiter future.
     private var current: EventLoopFuture<Void>
@@ -51,7 +51,7 @@ public final class EventLoopFutureQueue {
     /// Create a new `EventLoopFutureQueue` on a given event loop.
     ///
     /// - Parameter eventLoop: The event loop that all the futures's completions are handled on.
-    public init(eventLoop: EventLoop) {
+    public init(eventLoop: any EventLoop) {
         self.eventLoop = eventLoop
         self.current = eventLoop.makeSucceededFuture(())
     }

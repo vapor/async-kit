@@ -8,11 +8,14 @@
       "asynckit": "#808080",
       "documentation-intro-fill":  "radial-gradient(circle at top, var(--color-asynckit) 30%, #000 100%)",
       "documentation-intro-accent": "var(--color-asynckit)",
+      "documentation-intro-eyebrow": "white",
+      "documentation-intro-figure": "white",
+      "documentation-intro-title": "white",
       "logo-base":  { "dark": "#fff", "light": "#000" },
       "logo-shape": { "dark": "#000", "light": "#fff" },
       "fill":       { "dark": "#000", "light": "#fff" }
     },
-    "icons": { "technology": "/asynckit/images/vapor-asynckit-logo.svg" }
+    "icons": { "technology": "/asynckit/images/AsyncKit/vapor-asynckit-logo.svg" }
   },
   "features": {
     "quickNavigation": { "enable": true },

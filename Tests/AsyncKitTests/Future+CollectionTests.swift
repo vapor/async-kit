@@ -4,7 +4,7 @@ import NIOCore
 import NIOConcurrencyHelpers
 
 extension EventLoopGroup {
-    func spinAll(on eventLoop: EventLoop) -> EventLoopFuture<Void> {
+    func spinAll(on eventLoop: any EventLoop) -> EventLoopFuture<Void> {
         assert(self.makeIterator().contains(where: { ObjectIdentifier($0) == ObjectIdentifier(eventLoop) }))
         
         return .andAllSucceed(self.makeIterator().map { $0.submit {} }, on: eventLoop)

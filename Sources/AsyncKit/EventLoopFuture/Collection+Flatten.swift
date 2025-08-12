@@ -11,7 +11,7 @@ extension Collection {
     ///
     /// - parameter eventLoop: The event-loop to succeed the futures on.
     /// - returns: The succeeded values in an array, wrapped in an `EventLoopFuture`.
-    public func flatten<Value>(on eventLoop: EventLoop) -> EventLoopFuture<[Value]>
+    public func flatten<Value>(on eventLoop: any EventLoop) -> EventLoopFuture<[Value]>
         where Element == EventLoopFuture<Value>
     {
         return eventLoop.flatten(Array(self))
@@ -29,7 +29,7 @@ extension Array where Element == EventLoopFuture<Void> {
     ///
     /// - parameter eventLoop: The event-loop to succeed the futures on.
     /// - returns: The succeeded future.
-    public func flatten(on eventLoop: EventLoop) -> EventLoopFuture<Void> {
+    public func flatten(on eventLoop: any EventLoop) -> EventLoopFuture<Void> {
         return .andAllSucceed(self, on: eventLoop)
     }
 }
@@ -40,7 +40,7 @@ extension Collection {
     /// overall result. Identical to `EventLoopFuture.sequencedFlatMapEach(_:)`,
     /// but does not require the initial collection to be wrapped by a future.
     public func sequencedFlatMapEach<Result>(
-        on eventLoop: EventLoop,
+        on eventLoop: any EventLoop,
         _ transform: @escaping (_ element: Element) -> EventLoopFuture<Result>
     ) -> EventLoopFuture<[Result]> {
         return self.reduce(eventLoop.future([])) { fut, elem in fut.flatMap { res in transform(elem).map { res + [$0] } } }
@@ -49,7 +49,7 @@ extension Collection {
     /// An overload of `sequencedFlatMapEach(on:_:)` which returns a `Void` future instead
     /// of `[Void]` when the result type of the transform closure is `Void`.
     public func sequencedFlatMapEach(
-        on eventLoop: EventLoop,
+        on eventLoop: any EventLoop,
         _ transform: @escaping (_ element: Element) -> EventLoopFuture<Void>
     ) -> EventLoopFuture<Void> {
         return self.reduce(eventLoop.future()) { fut, elem in fut.flatMap { transform(elem) } }
@@ -59,7 +59,7 @@ extension Collection {
     /// by allowing result values to be `nil`. Such results are not included in the
     /// output array.
     public func sequencedFlatMapEachCompact<Result>(
-        on eventLoop: EventLoop,
+        on eventLoop: any EventLoop,
         _ transform: @escaping (_ element: Element) -> EventLoopFuture<Result?>
     ) -> EventLoopFuture<[Result]> {
         return self.reduce(eventLoop.future([])) { fut, elem in fut.flatMap { res in transform(elem).map { res + [$0].compactMap { $0 } } } }

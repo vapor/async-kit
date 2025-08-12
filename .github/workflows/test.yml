@@ -12,4 +12,5 @@ env:
 
 jobs:
   unit-tests:
-     uses: vapor/ci/.github/workflows/run-unit-tests.yml@main
+    uses: vapor/ci/.github/workflows/run-unit-tests.yml@main
+    secrets: inherit

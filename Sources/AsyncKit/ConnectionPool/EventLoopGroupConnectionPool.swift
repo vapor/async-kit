@@ -27,8 +27,8 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
     public let maxConnectionsPerEventLoop: Int
 
     /// Event loop source when not specified.
-    public let eventLoopGroup: EventLoopGroup
-    
+    public let eventLoopGroup: any EventLoopGroup
+
     // MARK: Private
     
     /// For lifecycle logs.
@@ -63,7 +63,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
         maxConnectionsPerEventLoop: Int = 1,
         requestTimeout: TimeAmount = .seconds(10),
         logger: Logger = .init(label: "codes.vapor.pool"),
-        on eventLoopGroup: EventLoopGroup
+        on eventLoopGroup: any EventLoopGroup
     ) {
         self.source = source
         self.maxConnectionsPerEventLoop = maxConnectionsPerEventLoop
@@ -98,7 +98,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
     /// - returns: A future containing the result of the closure.
     public func withConnection<Result>(
         logger: Logger? = nil,
-        on eventLoop: EventLoop? = nil,
+        on eventLoop: (any EventLoop)? = nil,
         _ closure: @escaping (Source.Connection) -> EventLoopFuture<Result>
     ) -> EventLoopFuture<Result> {
         guard !self.lock.withLock({ self.didShutdown }) else {
@@ -124,7 +124,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
     /// - returns: A future containing the requested connection.
     public func requestConnection(
         logger: Logger? = nil,
-        on eventLoop: EventLoop? = nil
+        on eventLoop: (any EventLoop)? = nil
     ) -> EventLoopFuture<Source.Connection> {
         guard !self.lock.withLock({ self.didShutdown }) else {
             return (eventLoop ?? self.eventLoopGroup).future(error: ConnectionPoolError.shutdown)
@@ -151,7 +151,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
     }
     
     /// Returns the `EventLoopConnectionPool` for a specific event loop.
-    public func pool(for eventLoop: EventLoop) -> EventLoopConnectionPool<Source> {
+    public func pool(for eventLoop: any EventLoop) -> EventLoopConnectionPool<Source> {
         self.storage[eventLoop.key]!
     }
     
@@ -245,7 +245,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
     @available(*, noasync, message: "This calls wait() and should not be used in an async context", renamed: "shutdownAsync()")
     public func syncShutdownGracefully() throws {
         // - TODO: Does this need to assert "not on any EventLoop", as `EventLoopGroup.syncShutdownGracefully()` does?
-        var possibleError: Error? = nil
+        var possibleError: (any Error)? = nil
         let waiter = DispatchWorkItem {}
         let errorLock = NIOLock()
         
@@ -281,7 +281,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
     ///
     /// - Warning: Any invocation of the callback represents a signal that the pool has fully shut
     ///   down. This is true even if the error parameter is non-`nil`; errors are purely advisory.
-    public func shutdownGracefully(_ callback: @escaping (Error?) -> Void) {
+    public func shutdownGracefully(_ callback: @escaping ((any Error)?) -> Void) {
         // Protect access to shared state.
         guard self.lock.withLock({
             // Do not initiate shutdown multiple times.
@@ -308,7 +308,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
         // `shutdownGracefully(queue:_:)` implementation.
         let shutdownQueue = DispatchQueue(label: "codes.vapor.async-kit.poolShutdownGracefullyQueue")
         let shutdownGroup = DispatchGroup()
-        var outcome: Result<Void, Error> = .success(())
+        var outcome: Result<Void, any Error> = .success(())
         
         for pool in self.storage.values {
             shutdownGroup.enter()
