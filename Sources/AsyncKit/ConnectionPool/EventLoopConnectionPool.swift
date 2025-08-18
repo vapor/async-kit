@@ -214,20 +214,22 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
         let timeoutTask = self.eventLoop.scheduleTask(in: self.requestTimeout) { [weak self] in
             // Try to avoid a spurious log message and failure if the waiter has already been removed from the list.
             guard self?.waiters.removeValue(forKey: waiterId) != nil else {
-                logger.trace("Waiter \(waiterId) already removed when timeout task fired")
+                logger.trace("Waiter already removed when timeout task fired", metadata: ["waiter": .stringConvertible(waiterId)])
                 return
             }
             logger.error("""
-                Connection request (ID \(waiterId)) timed out. This might indicate a connection deadlock in \
+                Connection request timed out. This might indicate a connection deadlock in \
                 your application. If you have long-running requests, consider increasing your connection timeout.
-                """)
+                """,
+                metadata: ["waiter": .stringConvertible(waiterId)]
+            )
             promise.fail(ConnectionPoolTimeoutError.connectionRequestTimeout)
         }
-        logger.trace("Adding connection request to waitlist with ID \(waiterId)")
+        logger.trace("Adding connection request to waitlist", metadata: ["waiter": .stringConvertible(waiterId)])
         self.waiters[waiterId] = (logger: logger, promise: promise, timeoutTask: timeoutTask)
 
         promise.futureResult.whenComplete { [weak self] _ in
-            logger.trace("Connection request with ID \(waiterId) completed")
+            logger.trace("Connection request completed", metadata: ["waiter": .stringConvertible(waiterId)])
             timeoutTask.cancel()
             self?.waiters.removeValue(forKey: waiterId)
         }
@@ -242,7 +244,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
                 self._releaseConnection0($0, logger: logger)
             }.flatMapErrorWithEventLoop { [weak self] error, eventLoop in
                 self?.activeConnections -= 1
-                logger.error("Opening new connection for pool failed: \(String(reflecting: error))")
+                logger.error("Opening new connection for pool failed", metadata: ["error": .string(String(reflecting: error))])
                 return eventLoop.makeFailedFuture(error)
             }.cascadeFailure(to: promise)
         }
@@ -290,11 +292,19 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
             return
         }
 
-        // Push the connection onto the end of the available list so it's the first one to get used
-        // on the next request.
-        logger.trace("Releasing pool connection on \(self.eventLoop.description), \(self.available.count + (connection.isClosed ? 0 : 1)) connections available.")
+        logger.trace("Releasing pool connection.", metadata: [
+            "eventloop": .string(self.eventLoop.description
+                .components(separatedBy: "thread = NIOThread(name = ").dropFirst().first?
+                .components(separatedBy: ")").first ?? "<unknown>"
+            ),
+            "available": .stringConvertible(self.available.count + (connection.isClosed ? 0 : 1))
+        ])
 
+        // Push the connection onto the end of the available list so it's the first one to get used
+        // on the next request. Do this even if the connection is closed in order to ensure we service
+        // the waitlist and start a new connection if needed.
         self.available.append((connection: connection, lastUse: .now()))
+
         if self.available.count == 1, let pruningInterval = self.pruningInterval, self.pruningTask == nil { // just added our very first connection
             self.pruningTask = self.eventLoop.scheduleRepeatedTask(
                 initialDelay: pruningInterval,
@@ -321,7 +331,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
         while !self.available.isEmpty, !self.waiters.isEmpty {
             let waiter = self.waiters.removeFirst()
 
-            logger.debug("Servicing connection waitlist item with id \(waiter.key)")
+            logger.debug("Servicing connection waitlist item", metadata: ["waiter": .stringConvertible(waiter.key)])
             waiter.value.timeoutTask.cancel()
             self._requestConnection0(logger: waiter.value.logger).cascade(to: waiter.value.promise)
         }
