@@ -2,7 +2,7 @@ import NIOCore
 
 /// Item managed by a connection pool.
 public protocol ConnectionPoolItem: AnyObject {
-    /// EventLoop this connection belongs to.
+    /// `EventLoop` this connection belongs to.
     var eventLoop: any EventLoop { get }
 
     /// If `true`, this connection has closed.

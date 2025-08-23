@@ -15,10 +15,12 @@ import struct Logging.Logger
 /// is reached. After the maximum is reached, no new connections will be created unless
 /// existing connections are closed.
 ///
-///     let pool = EventLoopConnectionPool(...)
-///     pool.withConnection(...) { conn in
-///         // use conn
-///     }
+/// ```swift
+/// let pool = EventLoopConnectionPool(...)
+/// pool.withConnection(...) { conn in
+///     // use conn
+/// }
+/// ```
 public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolSource {
     private typealias WaitlistItem = (logger: Logger, promise: EventLoopPromise<Source.Connection>, timeoutTask: Scheduled<Void>)
 
@@ -65,10 +67,12 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
 
     /// Creates a new ``EventLoopConnectionPool``.
     ///
-    ///     let pool = EventLoopConnectionPool(...)
-    ///     pool.withConnection(...) { conn in
-    ///         // use conn
-    ///     }
+    /// ```swift
+    /// let pool = EventLoopConnectionPool(...)
+    /// pool.withConnection(...) { conn in
+    ///     // use conn
+    /// }
+    /// ```
     ///
     /// - Parameters:
     ///   - source: Creates new connections when needed.
@@ -95,10 +99,12 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
 
     /// Creates a new ``EventLoopConnectionPool``.
     ///
-    ///     let pool = EventLoopConnectionPool(...)
-    ///     pool.withConnection(...) { conn in
-    ///         // use conn
-    ///     }
+    /// ```swift
+    /// let pool = EventLoopConnectionPool(...)
+    /// pool.withConnection(...) { conn in
+    ///     // use conn
+    /// }
+    /// ```
     ///
     /// - Parameters:
     ///   - source: Creates new connections when needed.
@@ -137,11 +143,13 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     /// The connection is provided to the supplied callback and will be automatically released when the
     /// future returned by the callback is completed.
     ///
-    ///     pool.withConnection { conn in
-    ///         // use the connection
-    ///     }
+    /// ```swift
+    /// pool.withConnection { conn in
+    ///     // use the connection
+    /// }
+    /// ```
     ///
-    /// See ``requestConnection()`` to request a pooled connection without using a callback.
+    /// See ``EventLoopConnectionPool/requestConnection()`` to request a pooled connection without using a callback.
     ///
     /// - Parameters:
     ///   - closure: Callback that accepts the pooled connection.
@@ -157,11 +165,13 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     /// The connection is provided to the supplied callback and will be automatically released when the
     /// future returned by the callback is completed.
     ///
-    ///     pool.withConnection(...) { conn in
-    ///         // use the connection
-    ///     }
+    /// ```swift
+    /// pool.withConnection(...) { conn in
+    ///     // use the connection
+    /// }
+    /// ```
     ///
-    /// See ``requestConnection(logger:)`` to request a pooled connection without using a callback.
+    /// See ``EventLoopConnectionPool/requestConnection(logger:)`` to request a pooled connection without using a callback.
     ///
     /// - Parameters:
     ///   - logger: For trace and debug logs.
@@ -182,11 +192,13 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     ///
     /// The connection returned by this method MUST be released when you are finished using it.
     ///
-    ///     let conn = try pool.requestConnection(...).wait()
-    ///     defer { pool.releaseConnection(conn) }
-    ///     // use the connection
+    /// ```swift
+    /// let conn = try pool.requestConnection(...).wait()
+    /// defer { pool.releaseConnection(conn) }
+    /// // use the connection
+    /// ```
     ///
-    /// See ``withConnection(_:)`` for a callback-based method that automatically releases the connection.
+    /// See ``EventLoopConnectionPool/withConnection(_:)`` for a callback-based method that automatically releases the connection.
     ///
     /// - Returns: A future containing the requested connection.
     public func requestConnection() -> EventLoopFuture<Source.Connection> {
@@ -197,16 +209,18 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     ///
     /// The connection returned by this method MUST be released when you are finished using it.
     ///
-    ///     let conn = try pool.requestConnection(...).wait()
-    ///     defer { pool.releaseConnection(conn) }
-    ///     // use the connection
+    /// ```swift
+    /// let conn = try pool.requestConnection(...).wait()
+    /// defer { pool.releaseConnection(conn) }
+    /// // use the connection
+    /// ```
     ///
-    /// See ``withConnection(logger:_:)`` for a callback-based method that automatically releases the connection.
+    /// See ``EventLoopConnectionPool/withConnection(logger:_:)`` for a callback-based method that automatically releases the connection.
     ///
-    /// - parameters:
-    ///     - logger: For trace and debug logs.
-    ///     - eventLoop: Preferred event loop for the new connection.
-    /// - returns: A future containing the requested connection.
+    /// - Parameters:
+    ///   - logger: For trace and debug logs.
+    ///   - eventLoop: Preferred event loop for the new connection.
+    /// - Returns: A future containing the requested connection.
     public func requestConnection(logger: Logger) -> EventLoopFuture<Source.Connection> {
         /// N.B.: This particular pattern (the use of a promise to forward the result when off the event loop)
         /// is straight out of NIO's `EventLoopFuture.fold()` implementation.
@@ -219,7 +233,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
         }
     }
 
-    /// Actual implementation of ``requestConnection(logger:)``.
+    /// Actual implementation of ``EventLoopConnectionPool/requestConnection(logger:)``.
     private func _requestConnection0(logger: Logger) -> EventLoopFuture<Source.Connection> {
         self.eventLoop.assertInEventLoop()
 
@@ -282,27 +296,31 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
         return promise.futureResult
     }
 
-    /// Releases a connection back to the pool. Use with `requestConnection()`.
+    /// Releases a connection back to the pool. Use with ``EventLoopConnectionPool/requestConnection()``.
     ///
-    ///     let conn = try pool.requestConnection().wait()
-    ///     defer { pool.releaseConnection(conn) }
-    ///     // use the connection
+    /// ```swift
+    /// let conn = try pool.requestConnection().wait()
+    /// defer { pool.releaseConnection(conn) }
+    /// // use the connection
+    /// ```
     ///
-    /// - parameters:
-    ///     - connection: Connection to release back to the pool.
+    /// - Parameters:
+    ///   - connection: Connection to release back to the pool.
     public func releaseConnection(_ connection: Source.Connection) {
         self.releaseConnection(connection, logger: self.logger)
     }
 
-    /// Releases a connection back to the pool. Use with `requestConnection()`.
+    /// Releases a connection back to the pool. Use with ``EventLoopConnectionPool/requestConnection(logger:)``.
     ///
-    ///     let conn = try pool.requestConnection().wait()
-    ///     defer { pool.releaseConnection(conn) }
-    ///     // use the connection
+    /// ```swift
+    /// let conn = try pool.requestConnection().wait()
+    /// defer { pool.releaseConnection(conn) }
+    /// // use the connection
+    /// ```
     ///
-    /// - parameters:
-    ///     - connection: Connection to release back to the pool.
-    ///     - logger: For trace and debug logs.
+    /// - Parameters:
+    ///   - connection: Connection to release back to the pool.
+    ///   - logger: For trace and debug logs.
     public func releaseConnection(_ connection: Source.Connection, logger: Logger) {
         if self.eventLoop.inEventLoop {
             self._releaseConnection0(connection, logger: logger)
