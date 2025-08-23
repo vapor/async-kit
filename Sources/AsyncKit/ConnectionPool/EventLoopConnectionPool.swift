@@ -74,6 +74,36 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     ///   - source: Creates new connections when needed.
     ///   - maxConnections: Limits the number of connections that can be open. Defaults to 1.
     ///   - requestTimeout: Timeout for requesting a new connection. Defaults to 10 seconds.
+    ///   - logger: For lifecycle logs.
+    ///   - on: Event loop.
+    public convenience init(
+        source: Source,
+        maxConnections: Int,
+        requestTimeout: TimeAmount = .seconds(10),
+        logger: Logger = .init(label: "codes.vapor.pool"),
+        on eventLoop: any EventLoop
+    ) {
+        self.init(
+            source: source,
+            maxConnections: maxConnections,
+            requestTimeout: requestTimeout,
+            pruneInterval: nil,
+            logger: logger,
+            on: eventLoop
+        )
+    }
+
+    /// Creates a new ``EventLoopConnectionPool``.
+    ///
+    ///     let pool = EventLoopConnectionPool(...)
+    ///     pool.withConnection(...) { conn in
+    ///         // use conn
+    ///     }
+    ///
+    /// - Parameters:
+    ///   - source: Creates new connections when needed.
+    ///   - maxConnections: Limits the number of connections that can be open. Defaults to 1.
+    ///   - requestTimeout: Timeout for requesting a new connection. Defaults to 10 seconds.
     ///   - pruneInterval: How often to check for and prune idle database connections. If `nil` (the default),
     ///     no pruning is performed.
     ///   - maxIdleTimeBeforePruning: How long a connection may remain idle before being pruned, if pruning is enabled.
@@ -84,7 +114,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
         source: Source,
         maxConnections: Int,
         requestTimeout: TimeAmount = .seconds(10),
-        pruneInterval: TimeAmount? = nil,
+        pruneInterval: TimeAmount?,
         maxIdleTimeBeforePruning: TimeAmount = .seconds(120),
         logger: Logger = .init(label: "codes.vapor.pool"),
         on eventLoop: any EventLoop
