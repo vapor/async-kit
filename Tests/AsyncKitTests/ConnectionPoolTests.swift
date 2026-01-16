@@ -4,6 +4,7 @@ import Logging
 import NIOConcurrencyHelpers
 import NIOCore
 import NIOEmbedded
+import class NIOPosix.MultiThreadedEventLoopGroup
 import XCTest
 
 final class ConnectionPoolTests: AsyncKitTestCase {

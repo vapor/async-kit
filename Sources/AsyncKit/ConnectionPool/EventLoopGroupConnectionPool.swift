@@ -1,4 +1,6 @@
+#if canImport(Dispatch)
 import Dispatch
+#endif
 import NIOConcurrencyHelpers
 import NIOCore
 import struct Logging.Logger
@@ -280,6 +282,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
         }
     }
 
+    #if canImport(Dispatch)
     /// Closes the connection pool.
     ///
     /// All available connections will be closed immediately. Any connections still in use will be
@@ -312,6 +315,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
             }
         }
     }
+    #endif  // canImport(Dispatch)
 
     /// Closes the connection pool.
     ///
@@ -336,10 +340,17 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
         guard self.lock.withLock({
             // Do not initiate shutdown multiple times.
             guard !self.didShutdown else {
+                #if canImport(Dispatch)
                 DispatchQueue.global().async {
                     self.logger.warning("Connection pool can not be shut down more than once.")
                     callback(ConnectionPoolError.shutdown)
                 }
+                #else
+                Task {
+                    self.logger.warning("Connection pool can not be shut down more than once.")
+                    callback(ConnectionPoolError.shutdown)
+                }
+                #endif
                 return false
             }
             
@@ -356,6 +367,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
         // all pools are closed, invoke the callback and provide it the first encountered error, if
         // any. By design, this loosely matches the general flow used by `MultiThreadedEventLoopGroup`'s
         // `shutdownGracefully(queue:_:)` implementation.
+        #if canImport(Dispatch)
         let shutdownQueue = DispatchQueue(label: "codes.vapor.async-kit.poolShutdownGracefullyQueue")
         let shutdownGroup = DispatchGroup()
         var outcome: Result<Void, any Error> = .success(())
@@ -380,6 +392,37 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
                 callback(error)
             }
         }
+        #else
+        Task {
+            await withTaskGroup(of: Result<Void, any Error>.self) { group in
+                for pool in self.storage.values {
+                    group.addTask {
+                        let singleResult: Result<Void, any Error> = await withCheckedContinuation { continuation in
+                            pool.close().whenComplete { result in
+                                continuation.resume(returning: result)
+                            }
+                        }
+
+                        return singleResult
+                    }
+                }
+
+                var outcome: Result<Void, any Error> = .success(())
+                for await singleResult in group {
+                    outcome = outcome.flatMap { singleResult }
+                }
+
+                switch outcome {
+                case .success:
+                    self.logger.debug("Connection group pool finished shutdown.")
+                    callback(nil)
+                case .failure(let error):
+                    self.logger.error("Connection group pool got shutdown error (and then shut down anyway): \(error)")
+                    callback(error)
+                }
+            }
+        }
+        #endif
     }
 
     deinit {
