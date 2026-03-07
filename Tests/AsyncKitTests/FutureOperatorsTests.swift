@@ -1,136 +1,159 @@
-import XCTest
 import AsyncKit
 import NIOCore
+import Testing
 
-final class FutureOperatorTests: AsyncKitTestCase {
-    func testAddition() throws {
+@Suite
+struct FutureOperatorTests {
+    @Test
+    func addition() async throws {
+        let eventLoop = NIOSingletons.posixEventLoopGroup.any()
         var future1 = eventLoop.makeSucceededFuture(8)
         let future2 = eventLoop.makeSucceededFuture(5)
 
-        XCTAssertEqual(try (future1 + future2).wait(), 13)
+        #expect(try await (future1 + future2).get() == 13)
         
         future1 += future2
-        XCTAssertEqual(try future1.wait(), 13)
+        #expect(try await future1.get() == 13)
         
         var arrayFuture1 = eventLoop.makeSucceededFuture([1, 2, 3])
         let arrayFuture2 = eventLoop.makeSucceededFuture([4, 5, 6])
         
-        XCTAssertEqual(try (arrayFuture1 + arrayFuture2).wait(), [1, 2, 3, 4, 5, 6])
-        XCTAssertNotEqual(try (arrayFuture1 + arrayFuture2).wait(), try (arrayFuture2 + arrayFuture1).wait())
+        #expect(try await (arrayFuture1 + arrayFuture2).get() == [1, 2, 3, 4, 5, 6])
+        #expect(try await (arrayFuture1 + arrayFuture2).get() != (arrayFuture2 + arrayFuture1).get())
         
         arrayFuture1 += arrayFuture2
-        XCTAssertEqual(try arrayFuture1.wait(), [1, 2, 3, 4, 5, 6])
+        #expect(try await arrayFuture1.get() == [1, 2, 3, 4, 5, 6])
     }
     
-    func testSubtraction() throws {
+    @Test
+    func subtraction() async throws {
+        let eventLoop = NIOSingletons.posixEventLoopGroup.any()
         var future1 = eventLoop.makeSucceededFuture(8)
         let future2 = eventLoop.makeSucceededFuture(5)
         
-        XCTAssertEqual(try (future1 - future2).wait(), 3)
+        #expect(try await (future1 - future2).get() == 3)
         
         future1 -= future2
-        XCTAssertEqual(try future1.wait(), 3)
+        #expect(try await future1.get() == 3)
         
         var arrayFuture1 = eventLoop.makeSucceededFuture([1, 2, 3, 4, 5, 6])
         let arrayFuture2 = eventLoop.makeSucceededFuture([4, 5, 6])
         
-        XCTAssertEqual(try (arrayFuture1 - arrayFuture2).wait(), [1, 2, 3])
+        #expect(try await (arrayFuture1 - arrayFuture2).get() == [1, 2, 3])
         
         arrayFuture1 -= arrayFuture2
-        XCTAssertEqual(try arrayFuture1.wait(), [1, 2, 3])
+        #expect(try await arrayFuture1.get() == [1, 2, 3])
     }
     
-    func testMultiplication() throws {
+    @Test
+    func multiplication() async throws {
+        let eventLoop = NIOSingletons.posixEventLoopGroup.any()
         var future1 = eventLoop.makeSucceededFuture(8)
         let future2 = eventLoop.makeSucceededFuture(5)
         
-        XCTAssertEqual(try (future1 * future2).wait(), 40)
+        #expect(try await (future1 * future2).get() == 40)
         
         future1 *= future2
-        XCTAssertEqual(try future1.wait(), 40)
+        #expect(try await future1.get() == 40)
     }
     
-    func testModulo() throws {
+    @Test
+    func modulo() async throws {
+        let eventLoop = NIOSingletons.posixEventLoopGroup.any()
         var future1 = eventLoop.makeSucceededFuture(8)
         let future2 = eventLoop.makeSucceededFuture(5)
         
-        XCTAssertEqual(try (future1 % future2).wait(), 3)
+        #expect(try await (future1 % future2).get() == 3)
         
         future1 %= future2
-        XCTAssertEqual(try future1.wait(), 3)
+        #expect(try await future1.get() == 3)
     }
     
-    func testDivision() throws {
+    @Test
+    func division() async throws {
+        let eventLoop = NIOSingletons.posixEventLoopGroup.any()
         var future1 = eventLoop.makeSucceededFuture(40)
         let future2 = eventLoop.makeSucceededFuture(5)
         
-        XCTAssertEqual(try (future1 / future2).wait(), 8)
+        #expect(try await (future1 / future2).get() == 8)
         
         future1 /= future2
-        XCTAssertEqual(try future1.wait(), 8)
+        #expect(try await future1.get() == 8)
     }
     
-    func testComparison() throws {
+    @Test
+    func comparison() async throws {
+        let eventLoop = NIOSingletons.posixEventLoopGroup.any()
         let future1 = eventLoop.makeSucceededFuture(8)
         let future2 = eventLoop.makeSucceededFuture(5)
         let future3 = eventLoop.makeSucceededFuture(5)
         
-        XCTAssert(try (future2 < future1).wait())
-        XCTAssert(try (future2 <= future3).wait())
-        XCTAssert(try (future2 >= future3).wait())
-        XCTAssert(try (future1 > future3).wait())
+        #expect(try await (future2 < future1).get())
+        #expect(try await (future2 <= future3).get())
+        #expect(try await (future2 >= future3).get())
+        #expect(try await (future1 > future3).get())
     }
 
-    func testBitshifts() throws {
+    @Test
+    func bitshifts() async throws {
+        let eventLoop = NIOSingletons.posixEventLoopGroup.any()
         var future1 = eventLoop.makeSucceededFuture(255)
         let future2 = eventLoop.makeSucceededFuture(16)
 
-        XCTAssertEqual(try (future1 << future2).wait(), 16711680)
+        #expect(try await (future1 << future2).get() == 16711680)
         
         future1 <<= future2
-        XCTAssertEqual(try future1.wait(), 16711680)
+        #expect(try await future1.get() == 16711680)
         
         var future3 = eventLoop.makeSucceededFuture(16711680)
         let future4 = eventLoop.makeSucceededFuture(16)
         
-        XCTAssertEqual(try (future3 >> future4).wait(), 255)
+        #expect(try await (future3 >> future4).get() == 255)
         
         future3 >>= future4
-        XCTAssertEqual(try future3.wait(), 255)
+        #expect(try await future3.get() == 255)
     }
     
-    func testAND() throws {
+    @Test
+    func and() async throws {
+        let eventLoop = NIOSingletons.posixEventLoopGroup.any()
         var future1 = eventLoop.makeSucceededFuture(200)
         let future2 = eventLoop.makeSucceededFuture(500)
         
-        XCTAssertEqual(try (future1 & future2).wait(), 192)
+        #expect(try await (future1 & future2).get() == 192)
         
         future1 &= future2
-        XCTAssertEqual(try future1.wait(), 192)
+        #expect(try await future1.get() == 192)
     }
     
-    func testXOR() throws {
+    @Test
+    func xor() async throws {
+        let eventLoop = NIOSingletons.posixEventLoopGroup.any()
         var future1 = eventLoop.makeSucceededFuture(8)
         let future2 = eventLoop.makeSucceededFuture(5)
         
-        XCTAssertEqual(try (future1 ^ future2).wait(), 13)
+        #expect(try await (future1 ^ future2).get() == 13)
         
         future1 ^= future2
-        XCTAssertEqual(try future1.wait(), 13)
+        #expect(try await future1.get() == 13)
     }
     
-    func testOR() throws {
+    @Test
+    func or() async throws {
+        let eventLoop = NIOSingletons.posixEventLoopGroup.any()
         var future1 = eventLoop.makeSucceededFuture(8)
         let future2 = eventLoop.makeSucceededFuture(5)
         
-        XCTAssertEqual(try (future1 | future2).wait(), 13)
+        #expect(try await (future1 | future2).get() == 13)
         
         future1 |= future2
-        XCTAssertEqual(try future1.wait(), 13)
+        #expect(try await future1.get() == 13)
     }
     
-    func testNOT() throws {
+    @Test
+    func not() async throws {
+        let eventLoop = NIOSingletons.posixEventLoopGroup.any()
         let future1: EventLoopFuture<UInt8> = eventLoop.makeSucceededFuture(0b00001111)
-        XCTAssertEqual(try ~future1.wait(), 0b11110000)
+        #expect(try await ~future1.get() == 0b11110000)
     }
 }

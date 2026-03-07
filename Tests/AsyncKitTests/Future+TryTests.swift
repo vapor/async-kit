@@ -1,42 +1,39 @@
-import NIOCore
 import AsyncKit
-import XCTest
+import NIOCore
+import Testing
 
-final class FutureTryTests: AsyncKitTestCase {
-    func testTryFlatMapPropagatesCallbackError() {
+@Suite
+struct FutureTryTests {
+    @Test
+    func tryFlatMapPropagatesCallbackError() async throws {
+        let eventLoop = NIOSingletons.posixEventLoopGroup.any()
         let future = eventLoop.future(0)
             .tryFlatMap { _ -> EventLoopFuture<String> in
                 throw TestError.generic
             }
 
-        XCTAssertThrowsError(try future.wait()) { error in
-            guard case TestError.generic = error else {
-                XCTFail("Received an unexpected error: \(error)")
-                return
-            }
-        }
+        await #expect(throws: TestError.generic) { try await future.get() }
     }
 
-    func testTryFlatMapPropagatesInnerError() {
+    @Test
+    func tryFlatMapPropagatesInnerError() async {
+        let eventLoop = NIOSingletons.posixEventLoopGroup.any()
         let future = eventLoop.future(0)
             .tryFlatMap { _ -> EventLoopFuture<String> in
-                self.eventLoop.makeFailedFuture(TestError.generic)
+                eventLoop.makeFailedFuture(TestError.generic)
             }
 
-        XCTAssertThrowsError(try future.wait()) { error in
-            guard case TestError.generic = error else {
-                XCTFail("Received an unexpected error: \(error)")
-                return
-            }
-        }
+        await #expect(throws: TestError.generic) { try await future.get() }
     }
 
-    func testTryFlatMapPropagatesResult() throws {
+    @Test
+    func tryFlatMapPropagatesResult() async throws {
+        let eventLoop = NIOSingletons.posixEventLoopGroup.any()
         let future = eventLoop.future(0)
             .tryFlatMap { value -> EventLoopFuture<String> in
-                self.eventLoop.makeSucceededFuture(String(describing: value))
+                eventLoop.makeSucceededFuture(String(describing: value))
             }
 
-        try XCTAssertEqual("0", future.wait())
+        #expect(try await future.get() == "0")
     }
 }
