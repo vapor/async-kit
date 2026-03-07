@@ -10,8 +10,8 @@
 <a href="https://discord.gg/vapor"><img src="https://design.vapor.codes/images/discordchat.svg" alt="Team Chat"></a>
 <a href="LICENSE"><img src="https://design.vapor.codes/images/mitlicense.svg" alt="MIT License"></a>
 <a href="https://github.com/vapor/async-kit/actions/workflows/test.yml"><img src="https://img.shields.io/github/actions/workflow/status/vapor/async-kit/test.yml?event=push&style=plastic&logo=github&label=test&logoColor=%23ccc" alt="Continuous Integration"></a>
-<a href="https://codecov.io/github/vapor/async-kit"><img src="https://img.shields.io/codecov/c/github/vapor/async-kit?style=plastic&logo=codecov&label=Codecov"></a>
-<a href="https://swift.org"><img src="https://design.vapor.codes/images/swift510up.svg" alt="Swift 5.10+"></a>
+<a href="https://codecov.io/github/vapor/async-kit"><img src="https://img.shields.io/codecov/c/github/vapor/async-kit?style=plastic&logo=codecov&label=Codecov" alt="Code Coverage"></a>
+<a href="https://swift.org"><img src="https://design.vapor.codes/images/swift60up.svg" alt="Swift 6.0+"></a>
 </p>
 
 <br>

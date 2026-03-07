@@ -1,4 +1,4 @@
-// swift-tools-version:5.10
+// swift-tools-version:6.0
 import PackageDescription
 
 let package = Package(
@@ -13,10 +13,10 @@ let package = Package(
         .library(name: "AsyncKit", targets: ["AsyncKit"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-nio.git", from: "2.61.0"),
-        .package(url: "https://github.com/apple/swift-log.git", from: "1.5.3"),
-        .package(url: "https://github.com/apple/swift-collections.git", from: "1.0.5"),
-        .package(url: "https://github.com/apple/swift-algorithms.git", from: "1.1.0"),
+        .package(url: "https://github.com/apple/swift-nio.git", from: "2.95.0"),
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.10.1"),
+        .package(url: "https://github.com/apple/swift-collections.git", from: "1.4.0"),
+        .package(url: "https://github.com/apple/swift-algorithms.git", from: "1.2.1"),
     ],
     targets: [
         .target(
@@ -38,14 +38,15 @@ let package = Package(
             ],
             swiftSettings: swiftSettings
         ),
-    ]
+    ],
+    swiftLanguageModes: [.v5]
 )
 
 var swiftSettings: [SwiftSetting] { [
     .enableUpcomingFeature("ExistentialAny"),
-    .enableUpcomingFeature("ConciseMagicFile"),
-    .enableUpcomingFeature("ForwardTrailingClosures"),
-    //.enableUpcomingFeature("DisableOutwardActorInference"),
+    //.enableUpcomingFeature("InternalImportsByDefault"),
     .enableUpcomingFeature("MemberImportVisibility"),
-    //.enableExperimentalFeature("StrictConcurrency=complete"),
+    .enableUpcomingFeature("InferIsolatedConformances"),
+    //.enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+    .enableUpcomingFeature("ImmutableWeakCaptures"),
 ] }
