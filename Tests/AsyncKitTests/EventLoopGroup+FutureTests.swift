@@ -1,26 +1,30 @@
 import AsyncKit
-import XCTest
 import NIOCore
+import Testing
 
-final class EventLoopGroupFutureTests: AsyncKitTestCase {
-    func testFutureVoid() throws {
-        try XCTAssertNoThrow(self.group.future().wait())
-        try XCTAssertNoThrow(self.eventLoop.future().wait())
+@Suite
+struct EventLoopGroupFutureTests {
+    @Test
+    func futureVoid() async throws {
+        await #expect(throws: Never.self) { try await NIOSingletons.posixEventLoopGroup.future().get() }
+        await #expect(throws: Never.self) { try await NIOSingletons.posixEventLoopGroup.any().future().get() }
     }
-    
-    func testFuture() throws {
-        try XCTAssertEqual(self.group.future(1).wait(), 1)
-        try XCTAssertEqual(self.eventLoop.future(1).wait(), 1)
-        
-        try XCTAssertEqual(self.group.future(true).wait(), true)
-        try XCTAssertEqual(self.eventLoop.future("foo").wait(), "foo")
+
+    @Test
+    func future() async throws {
+        #expect(try await NIOSingletons.posixEventLoopGroup.future(1).get() == 1)
+        #expect(try await NIOSingletons.posixEventLoopGroup.any().future(1).get() == 1)
+
+        #expect(try await NIOSingletons.posixEventLoopGroup.future(true).get() == true)
+        #expect(try await NIOSingletons.posixEventLoopGroup.any().future("foo").get() == "foo")
     }
-    
-    func testFutureError() throws {
-        let groupErr: EventLoopFuture<Int> = self.group.future(error: TestError.notEqualTo1)
-        let eventLoopErr: EventLoopFuture<String> = self.eventLoop.future(error: TestError.notEqualToBar)
-        
-        try XCTAssertThrowsError(groupErr.wait())
-        try XCTAssertThrowsError(eventLoopErr.wait())
+
+    @Test
+    func futureError() async throws {
+        let groupErr: EventLoopFuture<Int> = NIOSingletons.posixEventLoopGroup.future(error: TestError.notEqualTo1)
+        let eventLoopErr: EventLoopFuture<String> = NIOSingletons.posixEventLoopGroup.any().future(error: TestError.notEqualToBar)
+
+        await #expect(throws: (any Error).self) { try await groupErr.get() }
+        await #expect(throws: (any Error).self) { try await eventLoopErr.get() }
     }
 }

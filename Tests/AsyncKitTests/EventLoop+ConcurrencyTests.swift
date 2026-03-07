@@ -1,18 +1,20 @@
-import XCTest
 import AsyncKit
 import NIOCore
+import Testing
 
-final class EventLoopConcurrencyTests: AsyncKitTestCase {
-    func testGroupMakeFutureWithTask() throws {
+@Suite
+struct EventLoopConcurrencyTests {
+    @Test
+    func groupMakeFutureWithTask() async throws {
         @Sendable
         func getOne() async throws -> Int {
             return 1
         }
-        let expectedOne = self.group.makeFutureWithTask {
+        let expectedOne = NIOSingletons.posixEventLoopGroup.makeFutureWithTask {
             try await getOne()
         }
         
-        XCTAssertEqual(try expectedOne.wait(), 1)
+        #expect(try await expectedOne.get() == 1)
     }
 }
 

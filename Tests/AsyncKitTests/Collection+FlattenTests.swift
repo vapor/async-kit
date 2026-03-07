@@ -1,48 +1,53 @@
 import AsyncKit
-import XCTest
 import NIOCore
+import Testing
 
-final class CollectionFlattenTests: AsyncKitTestCase {
-    func testELFlatten()throws {
+@Suite
+struct CollectionFlattenTests {
+    @Test
+    func elFlatten() async throws {
+        let eventLoop = NIOSingletons.posixEventLoopGroup.any()
         let futures = [
-            self.eventLoop.makeSucceededFuture(1),
-            self.eventLoop.makeSucceededFuture(2),
-            self.eventLoop.makeSucceededFuture(3),
-            self.eventLoop.makeSucceededFuture(4),
-            self.eventLoop.makeSucceededFuture(5),
-            self.eventLoop.makeSucceededFuture(6),
-            self.eventLoop.makeSucceededFuture(7)
+            eventLoop.makeSucceededFuture(1),
+            eventLoop.makeSucceededFuture(2),
+            eventLoop.makeSucceededFuture(3),
+            eventLoop.makeSucceededFuture(4),
+            eventLoop.makeSucceededFuture(5),
+            eventLoop.makeSucceededFuture(6),
+            eventLoop.makeSucceededFuture(7)
         ]
         
-        let flattened = self.eventLoop.flatten(futures)
-        try XCTAssertEqual(flattened.wait(), [1, 2, 3, 4, 5, 6, 7])
-        
+        let flattened = eventLoop.flatten(futures)
+        #expect(try await flattened.get() == [1, 2, 3, 4, 5, 6, 7])
+
         let voids = [
-            self.eventLoop.makeSucceededFuture(()),
-            self.eventLoop.makeSucceededFuture(()),
-            self.eventLoop.makeSucceededFuture(()),
-            self.eventLoop.makeSucceededFuture(()),
-            self.eventLoop.makeSucceededFuture(()),
-            self.eventLoop.makeSucceededFuture(()),
-            self.eventLoop.makeSucceededFuture(())
+            eventLoop.makeSucceededFuture(()),
+            eventLoop.makeSucceededFuture(()),
+            eventLoop.makeSucceededFuture(()),
+            eventLoop.makeSucceededFuture(()),
+            eventLoop.makeSucceededFuture(()),
+            eventLoop.makeSucceededFuture(()),
+            eventLoop.makeSucceededFuture(())
         ]
         
-        let void = self.eventLoop.flatten(voids)
-        try XCTAssert(void.wait() == ())
+        let void = eventLoop.flatten(voids)
+        #expect(try await void.get() == ())
     }
     
-    func testCollectionFlatten()throws {
+    @Test
+    func collectionFlatten() async throws {
+        let eventLoop = NIOSingletons.posixEventLoopGroup.any()
         let futures = [
-            self.eventLoop.makeSucceededFuture(1),
-            self.eventLoop.makeSucceededFuture(2),
-            self.eventLoop.makeSucceededFuture(3),
-            self.eventLoop.makeSucceededFuture(4),
-            self.eventLoop.makeSucceededFuture(5),
-            self.eventLoop.makeSucceededFuture(6),
-            self.eventLoop.makeSucceededFuture(7)
+            eventLoop.makeSucceededFuture(1),
+            eventLoop.makeSucceededFuture(2),
+            eventLoop.makeSucceededFuture(3),
+            eventLoop.makeSucceededFuture(4),
+            eventLoop.makeSucceededFuture(5),
+            eventLoop.makeSucceededFuture(6),
+            eventLoop.makeSucceededFuture(7)
         ]
         
-        let flattened = futures.flatten(on: self.eventLoop)
-        try XCTAssertEqual(flattened.wait(), [1, 2, 3, 4, 5, 6, 7])
+        let flattened = futures.flatten(on: eventLoop)
+        #expect(try await flattened.get() == [1, 2, 3, 4, 5, 6, 7])
     }
 }

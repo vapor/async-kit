@@ -6,11 +6,20 @@ on:
   pull_request: { types: [opened, reopened, synchronize, ready_for_review] }
   push: { branches: [ main ] }
 
-env:
-  LOG_LEVEL: info
-  SWIFT_DETERMINISTIC_HASHING: 1
-
 jobs:
   unit-tests:
+    permissions:
+      contents: read
     uses: vapor/ci/.github/workflows/run-unit-tests.yml@main
+    secrets: inherit
+    with:
+      with_android: true
+      with_musl: true
+      with_release_mode_testing: true
+
+  submit-dependencies:
+    permissions:
+      contents: write
+    if: ${{ github.event_name == 'push' }}
+    uses: vapor/ci/.github/workflows/submit-deps.yml@main
     secrets: inherit

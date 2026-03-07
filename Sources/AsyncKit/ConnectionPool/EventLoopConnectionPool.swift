@@ -1,5 +1,7 @@
 import Atomics
 import Collections
+import DequeModule
+import OrderedCollections
 import NIOCore
 import struct Foundation.UUID
 import struct Logging.Logger

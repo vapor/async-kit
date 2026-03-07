@@ -1,22 +1,25 @@
-import XCTest
 import AsyncKit
 import NIOCore
+import Testing
 
-class FutureTransformTests: AsyncKitTestCase {
-    func testTransforms() throws {
+@Suite
+struct FutureTransformTests {
+    @Test
+    func transforms() async throws {
+        let eventLoop = NIOSingletons.posixEventLoopGroup.any()
         let future = eventLoop.makeSucceededFuture(Int.random(in: 0...100))
         
-        XCTAssert(try future.transform(to: true).wait())
-        
+        #expect(try await future.transform(to: true).get())
+
         let futureA = eventLoop.makeSucceededFuture(Int.random(in: 0...100))
         let futureB = eventLoop.makeSucceededFuture(Int.random(in: 0...100))
         
-        XCTAssert(try futureA.and(futureB).transform(to: true).wait())
-        
+        #expect(try await futureA.and(futureB).transform(to: true).get())
+
         let futureBool = eventLoop.makeSucceededFuture(true)
         
-        XCTAssert(try future.transform(to: futureBool).wait())
-        
-        XCTAssert(try futureA.and(futureB).transform(to: futureBool).wait())
+        #expect(try await future.transform(to: futureBool).get())
+
+        #expect(try await futureA.and(futureB).transform(to: futureBool).get())
     }
 }

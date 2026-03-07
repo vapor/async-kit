@@ -1,32 +1,38 @@
-import XCTest
 import AsyncKit
+import class Foundation.Thread
 import NIOCore
+import Testing
 
-final class FutureMiscellaneousTests: AsyncKitTestCase {
-    func testGuard() {
+@Suite
+struct FutureMiscellaneousTests {
+    @Test
+    func `guard`() async throws {
+        let eventLoop = NIOSingletons.posixEventLoopGroup.any()
         let future1 = eventLoop.makeSucceededFuture(1)
         let guardedFuture1 = future1.guard({ $0 == 1 }, else: TestError.notEqualTo1)
-        XCTAssertNoThrow(try guardedFuture1.wait())
-        
+        await #expect(throws: Never.self) { try await guardedFuture1.get() }
+
         let future2 = eventLoop.makeSucceededFuture("foo")
         let guardedFuture2 = future2.guard({ $0 == "bar" }, else: TestError.notEqualToBar)
-        XCTAssertThrowsError(try guardedFuture2.wait())
+        await #expect(throws: (any Error).self) { try await guardedFuture2.get() }
     }
-    
-    func testTryThrowing() {
+
+    @Test
+    func tryThrowing() async throws {
+        let eventLoop = NIOSingletons.posixEventLoopGroup.any()
         let future1: EventLoopFuture<String> = eventLoop.tryFuture { return "Hello" }
         let future2: EventLoopFuture<String> = eventLoop.tryFuture { throw TestError.notEqualTo1 }
-        var value: String = ""
-        
-        try XCTAssertNoThrow(value = future1.wait())
-        XCTAssertEqual(value, "Hello")
-        try XCTAssertThrowsError(future2.wait())
+
+        #expect(try await future1.get() == "Hello")
+        await #expect(throws: (any Error).self) { try await future2.get() }
     }
 
-    func testTryFutureThread() throws {
-        let future = self.eventLoop.tryFuture { Thread.current.name }
-        let name = try XCTUnwrap(future.wait())
+    @Test
+    func tryFutureThread() async throws {
+        let eventLoop = NIOSingletons.posixEventLoopGroup.any()
+        let future = eventLoop.tryFuture { Thread.current.name }
+        let name = try #require(try await future.get())
 
-        XCTAssert(name.starts(with: "NIO-ELT"), "'\(name)' is not a valid NIO ELT name")
+        #expect(name.starts(with: "NIO-SGL"), "'\(name)' is not a valid NIO ELT name")
     }
 }
