@@ -114,6 +114,84 @@ struct ConnectionPoolTests {
     }
 
     @Test
+    func connectionLifetimeEnforcedOnLease() async throws {
+        let foo = FooDatabase()
+        let pool = EventLoopConnectionPool(
+            source: foo,
+            maxConnections: 2,
+            pruneInterval: nil,
+            maxConnectionLifetime: .milliseconds(300),
+            on: MultiThreadedEventLoopGroup(numberOfThreads: 1).next()
+        )
+
+        do {
+            // Under steady use, the same connection is reused for as long as it is younger than its max lifetime.
+            let connA = try await pool.requestConnection().get()
+            pool.releaseConnection(connA)
+            for _ in 0..<2 {
+                try await Task.sleep(nanoseconds: 100_000_000)
+                let connA1 = try await pool.requestConnection().get()
+                #expect(connA === connA1)
+                pool.releaseConnection(connA1)
+            }
+            #expect(foo.connectionsCreated.load(ordering: .relaxed) == 1)
+
+            // Once it has aged out, it is closed and replaced on the next request, even though it was never idle.
+            try await Task.sleep(nanoseconds: 200_000_000)
+            let connB = try await pool.requestConnection().get()
+            #expect(connA !== connB)
+            #expect(connA.isClosed)
+            #expect(!connB.isClosed)
+            #expect(foo.connectionsCreated.load(ordering: .relaxed) == 2)
+            #expect(try await pool.poolState().get().active == 1)
+            pool.releaseConnection(connB)
+
+            try await pool.close().get()
+        } catch {
+            try? await pool.close().get()
+            throw error
+        }
+    }
+
+    @Test
+    func connectionLifetimeEnforcedByPruning() async throws {
+        let foo = FooDatabase()
+        let pool = EventLoopConnectionPool(
+            source: foo,
+            maxConnections: 2,
+            pruneInterval: .milliseconds(100),
+            maxIdleTimeBeforePruning: .seconds(60),
+            maxConnectionLifetime: .milliseconds(300),
+            on: MultiThreadedEventLoopGroup(numberOfThreads: 1).next()
+        )
+
+        do {
+            let connA = try await pool.requestConnection().get()
+            pool.releaseConnection(connA)
+            try await Task.sleep(nanoseconds: 100_000_000)
+            #expect(try await pool.poolState().get().active == 1)
+
+            // The idle timeout is far away, but the pruning pass still closes the connection once it ages out.
+            try await Task.sleep(nanoseconds: 500_000_000)
+            let (knownConnections, activeConnections, openConnections) = try await pool.poolState().get()
+            #expect(knownConnections == 0)
+            #expect(activeConnections == 0)
+            #expect(openConnections == 0)
+            #expect(connA.isClosed)
+
+            let connB = try await pool.requestConnection().get()
+            #expect(connA !== connB)
+            #expect(foo.connectionsCreated.load(ordering: .relaxed) == 2)
+            pool.releaseConnection(connB)
+
+            try await pool.close().get()
+        } catch {
+            try? await pool.close().get()
+            throw error
+        }
+    }
+
+    @Test
     func fifoWaiters() async throws {
         let foo = FooDatabase()
         let pool = EventLoopConnectionPool(

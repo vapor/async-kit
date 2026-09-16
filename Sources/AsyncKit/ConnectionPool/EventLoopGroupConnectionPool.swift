@@ -97,12 +97,59 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
     ///     Defaults to 2 minutes. Ignored if `pruneInterval` is `nil`.
     ///   - logger: For lifecycle logs.
     ///   - eventLoopGroup: Event loop group.
+    public convenience init(
+        source: Source,
+        maxConnectionsPerEventLoop: Int = 1,
+        requestTimeout: TimeAmount = .seconds(10),
+        pruneInterval: TimeAmount?,
+        maxIdleTimeBeforePruning: TimeAmount = .seconds(120),
+        logger: Logger = .init(label: "codes.vapor.pool"),
+        on eventLoopGroup: any EventLoopGroup
+    ) {
+        self.init(
+            source: source,
+            maxConnectionsPerEventLoop: maxConnectionsPerEventLoop,
+            requestTimeout: requestTimeout,
+            pruneInterval: pruneInterval,
+            maxIdleTimeBeforePruning: maxIdleTimeBeforePruning,
+            maxConnectionLifetime: nil,
+            logger: logger,
+            on: eventLoopGroup
+        )
+    }
+
+    /// Creates a new ``EventLoopGroupConnectionPool``.
+    ///
+    /// ```swift
+    /// let pool = EventLoopGroupConnectionPool(...)
+    /// pool.withConnection(...) { conn in
+    ///     // use conn
+    /// }
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - source: Creates new connections when needed.
+    ///   - maxConnectionsPerEventLoop: Limits the number of connections that can be open per event loop.
+    ///     Defaults to 1.
+    ///   - requestTimeout: Timeout for requesting a new connection. Defaults to 10 seconds.
+    ///   - pruneInterval: How often to check for and prune idle database connections. If `nil`,
+    ///     no pruning is performed.
+    ///   - maxIdleTimeBeforePruning: How long a connection may remain idle before being pruned, if pruning is enabled.
+    ///     Defaults to 2 minutes. Ignored if `pruneInterval` is `nil`.
+    ///   - maxConnectionLifetime: The maximum total age of a connection, measured from when it was opened, regardless
+    ///     of how recently it was used. If `nil`, connections are never retired based on age. When set, a connection
+    ///     older than this is never handed out again; it is closed and replaced the next time it is requested, and
+    ///     also closed by the pruning pass if `pruneInterval` is set. This is useful when connections pass through a
+    ///     proxy or load balancer which enforces its own maximum connection lifetime.
+    ///   - logger: For lifecycle logs.
+    ///   - eventLoopGroup: Event loop group.
     public init(
         source: Source,
         maxConnectionsPerEventLoop: Int = 1,
         requestTimeout: TimeAmount = .seconds(10),
         pruneInterval: TimeAmount?,
         maxIdleTimeBeforePruning: TimeAmount = .seconds(120),
+        maxConnectionLifetime: TimeAmount?,
         logger: Logger = .init(label: "codes.vapor.pool"),
         on eventLoopGroup: any EventLoopGroup
     ) {
@@ -118,6 +165,7 @@ public final class EventLoopGroupConnectionPool<Source> where Source: Connection
             requestTimeout: requestTimeout,
             pruneInterval: pruneInterval,
             maxIdleTimeBeforePruning: maxIdleTimeBeforePruning,
+            maxConnectionLifetime: maxConnectionLifetime,
             logger: logger,
             on: $0
         )) })

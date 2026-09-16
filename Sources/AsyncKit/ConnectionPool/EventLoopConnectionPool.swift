@@ -64,6 +64,14 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     /// Max connection idle time before pruning, if enabled.
     private let maxIdleTimeBeforePruning: TimeAmount
 
+    /// Max total connection lifetime, if enabled.
+    private let maxConnectionLifetime: TimeAmount?
+
+    /// Creation times of all connections opened by this pool, keyed by connection identity.
+    ///
+    /// Entries are added when a connection is opened and removed when it is closed or discarded.
+    private var creationTimes: [ObjectIdentifier: NIODeadline]
+
     /// Connection pruning timer, if pruning is enabled.
     private var pruningTask: RepeatedTask?
 
@@ -118,7 +126,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
     ///     Defaults to 2 minutes. Ignored if `pruneInterval` is `nil`.
     ///   - logger: For lifecycle logs.
     ///   - on: Event loop.
-    public init(
+    public convenience init(
         source: Source,
         maxConnections: Int,
         requestTimeout: TimeAmount = .seconds(10),
@@ -127,11 +135,59 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
         logger: Logger = .init(label: "codes.vapor.pool"),
         on eventLoop: any EventLoop
     ) {
+        self.init(
+            source: source,
+            maxConnections: maxConnections,
+            requestTimeout: requestTimeout,
+            pruneInterval: pruneInterval,
+            maxIdleTimeBeforePruning: maxIdleTimeBeforePruning,
+            maxConnectionLifetime: nil,
+            logger: logger,
+            on: eventLoop
+        )
+    }
+
+    /// Creates a new ``EventLoopConnectionPool``.
+    ///
+    /// ```swift
+    /// let pool = EventLoopConnectionPool(...)
+    /// pool.withConnection(...) { conn in
+    ///     // use conn
+    /// }
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - source: Creates new connections when needed.
+    ///   - maxConnections: Limits the number of connections that can be open. Defaults to 1.
+    ///   - requestTimeout: Timeout for requesting a new connection. Defaults to 10 seconds.
+    ///   - pruneInterval: How often to check for and prune idle database connections. If `nil`,
+    ///     no pruning is performed.
+    ///   - maxIdleTimeBeforePruning: How long a connection may remain idle before being pruned, if pruning is enabled.
+    ///     Defaults to 2 minutes. Ignored if `pruneInterval` is `nil`.
+    ///   - maxConnectionLifetime: The maximum total age of a connection, measured from when it was opened, regardless
+    ///     of how recently it was used. If `nil`, connections are never retired based on age. When set, a connection
+    ///     older than this is never handed out again; it is closed and replaced the next time it is requested, and
+    ///     also closed by the pruning pass if `pruneInterval` is set. This is useful when connections pass through a
+    ///     proxy or load balancer which enforces its own maximum connection lifetime.
+    ///   - logger: For lifecycle logs.
+    ///   - on: Event loop.
+    public init(
+        source: Source,
+        maxConnections: Int,
+        requestTimeout: TimeAmount = .seconds(10),
+        pruneInterval: TimeAmount?,
+        maxIdleTimeBeforePruning: TimeAmount = .seconds(120),
+        maxConnectionLifetime: TimeAmount?,
+        logger: Logger = .init(label: "codes.vapor.pool"),
+        on eventLoop: any EventLoop
+    ) {
         self.source = source
         self.maxConnections = maxConnections
         self.requestTimeout = requestTimeout
         self.pruningInterval = pruneInterval
         self.maxIdleTimeBeforePruning = maxIdleTimeBeforePruning
+        self.maxConnectionLifetime = maxConnectionLifetime
+        self.creationTimes = .init(minimumCapacity: maxConnections)
         self.logger = logger
         self.eventLoop = eventLoop
         self.available = .init(minimumCapacity: maxConnections)
@@ -243,14 +299,18 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
             return self.eventLoop.makeFailedFuture(ConnectionPoolError.shutdown)
         }
 
-        // Find an available connection that isn't closed
+        // Find an available connection that isn't closed or past its maximum lifetime
         while let conn = self.available.popLast() {
-            if !conn.connection.isClosed {
+            if conn.connection.isClosed {
+                logger.debug("Pruning defunct connection")
+                self.discardConnection(conn.connection)
+            } else if self.hasExceededLifetime(conn.connection) {
+                logger.debug("Pruning expired connection")
+                _ = conn.connection.close()
+                self.discardConnection(conn.connection)
+            } else {
                 logger.trace("Using available connection")
                 return self.eventLoop.makeSucceededFuture(conn.connection)
-            } else {
-                logger.debug("Pruning defunct connection")
-                self.activeConnections -= 1
             }
         }
 
@@ -287,6 +347,7 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
             self.source.makeConnection(logger: logger, on: self.eventLoop).map {
                 // On success, "release" the new connection to the pool and let the waitlist logic take over
                 logger.trace("New connection successful, servicing waitlist")
+                self.creationTimes[ObjectIdentifier($0)] = .now()
                 self._releaseConnection0($0, logger: logger)
             }.flatMapErrorWithEventLoop { [weak self] error, eventLoop in
                 self?.activeConnections -= 1
@@ -365,13 +426,20 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
                 for conninfo in self.available where !conninfo.connection.isClosed {
                     if conninfo.lastUse + self.maxIdleTimeBeforePruning < .now() {
                         self.logger.debug("Pruning idle connection.")
-                        _ = conninfo.connection.close()
-                        prunedConnections.insert(.init(conninfo.connection))
+                    } else if self.hasExceededLifetime(conninfo.connection) {
+                        self.logger.debug("Pruning expired connection.")
+                    } else {
+                        continue
                     }
+                    _ = conninfo.connection.close()
+                    prunedConnections.insert(.init(conninfo.connection))
                 }
                 if !prunedConnections.isEmpty {
                     self.available.removeAll(where: { prunedConnections.contains(ObjectIdentifier($0.connection)) })
                     self.activeConnections -= prunedConnections.count
+                    for id in prunedConnections {
+                        self.creationTimes.removeValue(forKey: id)
+                    }
                 }
             }
         }
@@ -434,7 +502,26 @@ public final class EventLoopConnectionPool<Source> where Source: ConnectionPoolS
         }.map {
             self.activeConnections = 0
             self.available.removeAll()
+            self.creationTimes.removeAll()
         }
+    }
+
+    /// Returns `true` if a maximum connection lifetime is configured and the given connection has exceeded it.
+    ///
+    /// Connections whose creation time is unknown (i.e. connections not opened by this pool) are never considered expired.
+    private func hasExceededLifetime(_ connection: Source.Connection) -> Bool {
+        guard let maxConnectionLifetime = self.maxConnectionLifetime,
+              let createdAt = self.creationTimes[ObjectIdentifier(connection)]
+        else {
+            return false
+        }
+        return createdAt + maxConnectionLifetime < .now()
+    }
+
+    /// Forgets a connection which is no longer usable and frees its slot in the pool.
+    private func discardConnection(_ connection: Source.Connection) {
+        self.activeConnections -= 1
+        self.creationTimes.removeValue(forKey: ObjectIdentifier(connection))
     }
 
     internal/*testable*/ func poolState() -> EventLoopFuture<(known: Int, active: Int, open: Int)> {
